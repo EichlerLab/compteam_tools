@@ -1,0 +1,75 @@
+#!/bin/env python
+
+
+import pandas as pd
+import argparse
+import numpy as np
+import glob
+
+
+
+def get_n50(vals):
+	vals = vals.sort_values(ascending=False)
+	vals_csum = np.cumsum(vals)
+	return vals.iloc[np.sum(vals_csum <= (vals_csum.iloc[-1] // 2))]/1000
+
+
+
+parser = argparse.ArgumentParser() 
+
+parser.add_argument('--sample', '-s', type=str, required=False, help='Sample name to summarize if within the long_read_archive')
+parser.add_argument('--seq_type', '-q', type=str, required=False, help='Sequencing type to count [default: UL|STD]', default='STD|UL')
+parser.add_argument('--fofn', '-f', type=str, required=False, help='FOFN of sequence reads MUST BE INDEXED')
+parser.add_argument('--genome', '-g', type=float, required=False, help='Genome size in Gbp', default=3.1)
+parser.add_argument('--cohort', '-c', type=str, required=False, help='cohort to search along [default : pop ]', default='pop')
+parser.add_argument('--outfile', '-o', type=str, required=False, help='Output file to write to', default='/dev/stdout')
+parser.add_argument('--model', '-m', type=str, required=False, help='Basecalling model to calculate coverage for')
+parser.add_argument('--version', '-v', type=str, required=False, help='Basecaller version to calculate coverage for')
+parser.add_argument('--tab', '-t', required=False, action='store_true', help='Basecaller version to calculate coverage for')
+
+
+args = parser.parse_args()
+
+
+if args.sample:
+	seq_search = args.seq_type.split('|')
+	# seaches along path
+	file_list = [ list(glob.iglob(f'/net/eichler/vol28/projects/long_read_archive/nobackups/{args.cohort}/{args.sample}/raw_data/nanopore/{search}/**/*fastq_pass.fastq.gz.fai', recursive=True)) for search in seq_search ]
+	# flattens list
+	file_list = [ file for sublist in file_list for file in sublist ]
+	if args.model:
+		file_list = [ file for file in file_list if args.model in file ]
+	if args.version:
+		file_lisit = [ file for file in file_list if args.version in file ]
+	df = pd.concat([pd.read_csv(file, sep='\t', header=None, usecols=[0,1]) for file in file_list])
+else:
+	fofn_df = pd.read_csv(args.fofn, sep='\t', header=None, index_col=0)
+	df = pd.concat([pd.read_csv(file+'.fai', sep='\t', header=None, usecols=[0,1]) for file in fofn_df.index])
+
+len_list = pd.Series(df[1].copy())
+
+len_list.sort_values(ascending=False, inplace=True)
+
+
+len_list_k = pd.Series(df.loc[df[1] >= 100000][1].copy())
+
+coverage = np.sum(len_list)/(args.genome*1000000000)
+coverage_k = np.sum(len_list_k)/(args.genome*1000000000)
+
+
+if not args.tab:
+	with open(args.outfile, 'w') as outFile:
+			outFile.write(
+			'Coverage (X): {:,.3f}\n'
+			'Coverage 100k+ (X): {:,.3f}\n'
+			'Reads:     {:,d}\n'
+			'N50 (kbp):   {:,.2f}\n'.format(
+			coverage,
+			coverage_k,
+			len(len_list),
+			get_n50(len_list),
+		)
+	)
+else:
+	out_df = pd.DataFrame.from_dict({'SAMPLE' : [args.sample], 'COVERAGE' : [coverage], 'COVERAGE_100' : [coverage_k], 'READS' : [len(len_list)], 'N50_K' : [get_n50(len_list)]})
+	out_df.to_csv(args.outfile, sep='\t', index=False)

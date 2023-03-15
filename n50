@@ -1,0 +1,56 @@
+#!/bin/env python
+
+import sys
+import pandas as pd
+import numpy as np
+
+
+ASM_FASTA = sys.argv[1]
+
+def get_n50(vals):
+    
+    vals = vals.sort_values(ascending=False)
+    vals_csum = np.cumsum(vals)
+    
+    return vals.iloc[np.sum(vals_csum <= (vals_csum.iloc[-1] // 2))]/1000000
+
+
+# Get lengths
+
+with open(ASM_FASTA, 'r') as in_file:
+    len_list = [int(record.split('\t')[1]) for record in in_file]
+
+len_list = pd.Series(len_list)
+
+len_list.sort_values(ascending=False, inplace=True)
+
+aun = np.sum(len_list*len_list)/np.sum(len_list)/1000000
+
+
+
+try:
+    if sys.argv[2] == 'rows':
+        print('Bases (Gbp)\tContigs\tN50 (Mbp)\t100k+ (Gbp)\tAuN (Mbp)')
+        print('{:,.3f}\t{:,d}\t{:,.2f}\t{:,.3f}\t{:,.3f}'.format(
+            np.sum(len_list)/1000000000.000,
+            len(len_list),
+            get_n50(len_list),
+            np.sum(len_list.loc[len_list >= 100000])/1000000000.000,
+            aun
+        ))
+except:
+    print(
+    (
+        'Bases (Gbp): {:,.3f}\n'
+        'Contigs:     {:,d}\n'
+        'N50 (Mbp):   {:,.2f}\n'
+        '100k+ (Gbp): {:,.3f}\n'
+        'AuN (Mbp):   {:,.3f}\n'
+    ).format(
+        np.sum(len_list)/1000000000.000,
+        len(len_list),
+        get_n50(len_list),
+        np.sum(len_list.loc[len_list >= 100000])/1000000000.000,
+        aun
+    )
+    )
