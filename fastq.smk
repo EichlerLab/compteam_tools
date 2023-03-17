@@ -1,11 +1,16 @@
 import pandas as pd
 
-manifest_df = pd.read_csv('fastq_manifest.tab', sep='\t', index_col=0, header=0)
+manifest_df = pd.read_csv('fastq_manifest.tab', sep='\t', index_col='sample', header=0, dtype=str)
 
 
 def findCram(wildcards):
 	return manifest_df.at[wildcards.sample, 'cram']
 
+
+if 'REF' in config:
+	REF_ARGS=f" -T {config['REF']} "
+else:
+	REF_ARGS=""
 
 localrules: all, fofn
 
@@ -28,8 +33,8 @@ rule convert:
 		hrs = 48
 	shell:
 		'''
-		module load samtools/1.12
-		samtools collate -@ {threads} -u -O {input.cram} | samtools fastq -@ {threads} -1 {output.fastq_one} -2 {output.fastq_two} -0 /dev/null -s /dev/null -n
+		module load samtools/1.14
+		samtools view -b {REF_ARGS} -@ {threads} {input.cram} | samtools sort -n -T {resources.tmpdir} -@ {threads} | samtools fastq -@ {threads} -1 {output.fastq_one} -2 {output.fastq_two} -0 /dev/null -s /dev/null -n
 		'''
 
 rule bgzip:

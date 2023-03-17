@@ -54,8 +54,13 @@ def make_ont_fofn(sample, fn, prefix, fltr_str):
             a.append(match_dict)
 
     fofn_df = pd.DataFrame(a)
+
     if fofn_df.empty:
         sys.exit(f'No {file_type} matched the filter- please try again :)')
+
+    # Drop the duplicate samples but keeping the one run with latest version
+    fofn_df.drop_duplicates(['lib', 'runid', 'bc', 'model'], inplace=True)
+
     return fofn_df['fpath'].to_csv(fn, header=False, index=False)
 
 
