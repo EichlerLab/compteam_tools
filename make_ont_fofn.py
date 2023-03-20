@@ -56,7 +56,7 @@ def make_ont_fofn(sample, fn, prefix, fltr_str):
     fofn_df = pd.DataFrame(a)
 
     if fofn_df.empty:
-        sys.exit(f'No {file_type} matched the filter- please try again :)')
+        sys.exit(f'No {file_type} matched your filters- please try again :)')
 
     # Drop the duplicate samples but keeping the one run with latest version
     fofn_df.sort(['ver'], inplace=True)
