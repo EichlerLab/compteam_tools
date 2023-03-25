@@ -56,18 +56,11 @@ def make_ont_fofn(sample, fn, prefix, fltr_str):
     fofn_df = pd.DataFrame(a)
 
     if fofn_df.empty:
-<<<<<<< HEAD
-        sys.exit(f'No {file_type} matched the filter- please try again :)')
-
-    # Drop the duplicate samples but keeping the one run with latest version
-    fofn_df.drop_duplicates(['lib', 'runid', 'bc', 'model'], inplace=True)
-=======
         sys.exit(f'No {file_type} matched your filters- please try again :)')
 
     # Drop the duplicate samples but keeping the one run with latest version
     fofn_df.sort(['ver'], inplace=True)
     fofn_df.drop_duplicates(['lib', 'runid', 'bc', 'model'], inplace=True, keep='last')
->>>>>>> 97765d55c2498db5df556ef1dab6800d800324bb
 
     return fofn_df['fpath'].to_csv(fn, header=False, index=False)
 
