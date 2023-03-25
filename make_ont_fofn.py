@@ -59,7 +59,7 @@ def make_ont_fofn(sample, fn, prefix, fltr_str):
         sys.exit(f'No {file_type} matched your filters- please try again :)')
 
     # Drop the duplicate samples but keeping the one run with latest version
-    fofn_df.sort(['ver'], inplace=True)
+    fofn_df.sort_values(['ver'], inplace=True)
     fofn_df.drop_duplicates(['lib', 'runid', 'bc', 'model'], inplace=True, keep='last')
 
     return fofn_df['fpath'].to_csv(fn, header=False, index=False)
