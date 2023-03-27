@@ -26,12 +26,8 @@ def make_ont_fofn(sample, fn, prefix, fltr_str):
         alt_fltr_dict = dict([x.split('=') for x in alt_fltr_list])
         fltr_dict.update(alt_fltr_dict)
 
-    basecaller = fltr_dict['bc']
-    model = fltr_dict['model']
-    version = fltr_dict['ver']
-    library = fltr_dict['lib']
+    basecaller, model, version, library, file_type = tuple(fltr_dict.values())
 
-    file_type = fltr_dict['ftype']
     if file_type == 'fastq':
         file_type = 'fastq.gz'
     elif file_type == 'bam':
