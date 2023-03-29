@@ -2,7 +2,7 @@
 """
 Usage: ./make_ont_fofn.py --sample 14455_p1 --proj_dir absolute/path/to/clinical --output 14455_p1.fofn --filter_string 'lib=STD;model=sup-prom;bc=guppy;ver=6;ftype=bam'
 This script will get you all the fastqs that belong to guppy ver 6.x.x for STD library
-Slack/email me if you experience any problems or want additional features, wumei@uw.edu
+Slack/email me (Mei) if you experience any problems or want additional features
 """
 
 from glob import iglob
