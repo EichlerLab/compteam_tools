@@ -31,7 +31,7 @@ parser.add_argument('--tab', '-t', required=False, action='store_true', help='Ba
 args = parser.parse_args()
 
 
-if args.sample:
+if args.sample and not args.fofn:
 	seq_search = args.seq_type.split('|')
 	# seaches along path
 	file_list = [ list(glob.iglob(f'/net/eichler/vol28/projects/long_read_archive/nobackups/{args.cohort}/{args.sample}/raw_data/nanopore/{search}/**/*fastq_pass.fastq.gz.fai', recursive=True)) for search in seq_search ]

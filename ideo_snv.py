@@ -223,6 +223,7 @@ parser.add_argument("--only_b", action='store_true', help="If wanting to only pl
 parser.add_argument("--i_file", "-i", type=str, required=False, help="SVPOP intersect file with A,B variants intersected in order")
 parser.add_argument("--output", "-o", type=str, required=True, help="Output handle for images. Makes both png and pdf")
 parser.add_argument("--color", "-c", type=str, required=False, default='tab:green', help="Color to plot SNVs with")
+parser.add_argument("--ref", "-r", type=str, required=False, default='hg38', help="REF to use of ideogram bars: hg38 or chm13_v1.1")
 
 args = parser.parse_args()
 
@@ -260,13 +261,20 @@ SPACER_PROP = 0.325  # Shift lower bars by this amount to make space for ideo
 
 LABEL_SPACE = 0.25  # Add this proportion of the y range to the upper limit to make space for the chromosome label
 
-# Fig tracks
-FAI_FILE_NAME = '/net/eichler/vol26/eee_shared/assemblies/CHM13/T2T/v1.1/chm13_v1.1_plus38Y_masked.fasta.fai'
+if args.ref == 'chm13':
+        FAI_FILE_NAME = '/net/eichler/vol26/eee_shared/assemblies/CHM13/T2T/v1.1/chm13_v1.1_plus38Y_masked.fasta.fai'
+        BAND_FILE_NAME = '/net/eichler/vol26/eee_shared/assemblies/CHM13/T2T/v1.1/anno/cyto.bed'
+        GAP_FILE_NAME = '/net/eichler/vol26/eee_shared/assemblies/CHM13/T2T/v1.1/anno/gap.bed'
+        SD_FILE_NAME = '/net/eichler/vol26/eee_shared/assemblies/CHM13/T2T/v1.1/anno/sd-max-frac.bed'
+        TR_FILE_NAME = '/net/eichler/vol26/eee_shared/assemblies/CHM13/T2T/v1.1/anno/trf_regions_200_0.bed'
+elif args.ref == 'hg38':
+        # Fig tracks
+        FAI_FILE_NAME = '/net/eichler/vol26/eee_shared/assemblies/hg38/no_alt/hg38.no_alt.fa.fai'
+        BAND_FILE_NAME = '/net/eichler/vol27/projects/hgsvc/nobackups/svpop/data/anno/bands/bands.bed'
+        GAP_FILE_NAME = '/net/eichler/vol27/projects/hgsvc/nobackups/svpop/data/anno/gap/gap.bed'
+        SD_FILE_NAME = '/net/eichler/vol27/projects/hgsvc/nobackups/svpop/data/anno/sd/sd-max-frac.bed'
+        TR_FILE_NAME = '/net/eichler/vol27/projects/hgsvc/nobackups/svpop/data/anno/trf/trf_regions_200_0.bed'
 
-BAND_FILE_NAME = '/net/eichler/vol26/eee_shared/assemblies/CHM13/T2T/v1.1/anno/cyto.bed'
-GAP_FILE_NAME = '/net/eichler/vol26/eee_shared/assemblies/CHM13/T2T/v1.1/anno/gap.bed'
-SD_FILE_NAME = '/net/eichler/vol26/eee_shared/assemblies/CHM13/T2T/v1.1/anno/sd-max-frac.bed'
-TR_FILE_NAME = '/net/eichler/vol26/eee_shared/assemblies/CHM13/T2T/v1.1/anno/trf_regions_200_0.bed'
 
 
 chroms = ['chr%d' % num for num in range(1,23)]
