@@ -6,6 +6,7 @@ manifest_df = pd.read_csv('fastq_manifest.tab', sep='\t', index_col='sample', he
 def findCram(wildcards):
 	return manifest_df.at[wildcards.sample, 'cram']
 
+configfile: 'config.yaml'
 
 if 'REF' in config:
 	REF_ARGS=f" -T {config['REF']} "
