@@ -14,7 +14,7 @@ import pandas as pd
 import numpy as np
 
 
-logger = logging.getLogger()
+LOG = logging.getLogger()
 logging.basicConfig(stream=sys.stdout, level="INFO", format='%(asctime)s - %(levelname)s - %(message)s')
 
 
@@ -89,7 +89,7 @@ class CalculateStats:
         stats_dict = self.stats
         out_df = pd.DataFrame.from_dict(stats_dict)
         out_df.to_csv(outpath, sep='\t', index=False)
-        logger.info(f"Wrote: {outpath}")
+        LOG.info(f"Wrote: {outpath}")
 
 
 class OntStats:
@@ -111,8 +111,11 @@ class OntStats:
         regex_df = self.df.filepath.str.extract(self.__class__.regex, expand=True)
         self.df = pd.concat([self.df, regex_df], axis=1)
 
-        # Just take the major version number
-        self.df["version"] = self.df["version"].str.split(".", n=1, expand=True)[0]
+        try:
+            # Just take the major version number
+            self.df["version"] = self.df["version"].str.split(".", n=1, expand=True)[0]
+        except KeyError:
+            LOG.warning(f"Something went wrong with the path: {self.df.filepath}")
 
         self.df["directory_make"] = self.df.apply(
             lambda row: os.path.join(row.common_dir, row.library, "quick_stats"),
@@ -134,16 +137,19 @@ class OntStats:
                 raise RuntimeError(f"Cannot write in {v}")
 
             if not os.path.exists(v):
-                logger.info(f"Making {v} directory")
+                LOG.info(f"Making {v} directory")
                 os.makedirs(v, mode=0o775)
             else:
-                logger.info(f"{v} exists, skipping.")
+                LOG.info(f"{v} exists, skipping.")
 
     def get_fastqs(self):
         fastq_dict = {}
         for v in self.unique_indicies:
             dict_key = os.path.join(v[3], v[-1]) # directory_make + n50_filename
-            list_of_fastqs = self.df.loc[v, "filepath"].tolist()
+            try:
+                list_of_fastqs = self.df.loc[v, "filepath"].tolist()
+            except AttributeError:
+                list_of_fastqs = [self.df.loc[v, "filepath"]]
             fastq_dict[dict_key] = list_of_fastqs
         return fastq_dict
 
