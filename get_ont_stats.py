@@ -43,7 +43,10 @@ def main():
     fastq_dict = ont_obj.get_fastqs()
 
     for k in fastq_dict.keys():
-        CalculateStats(files=fastq_dict[k], sample=sample).write_out(outpath=k)
+        if not os.path.exists(k):
+            CalculateStats(files=fastq_dict[k], sample=sample).write_out(outpath=k)
+        else:
+            LOG.info(f"{os.path.basename(k)} in {cohort} exists, skipping.")
 
 
 class CalculateStats:
