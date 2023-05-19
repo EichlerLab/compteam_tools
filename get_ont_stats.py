@@ -35,7 +35,7 @@ def main():
     sample = args.sample
     cohort = args.cohort
     prefix = args.prefix
-    ont_obj = OntStats(prefix=prefix, sample=sample, cohort=cohort)
+    ont_obj = FindONT(prefix=prefix, sample=sample, cohort=cohort)
 
     ont_obj.apply_regex()
 
@@ -95,7 +95,7 @@ class CalculateStats:
         LOG.info(f"Wrote: {outpath}")
 
 
-class OntStats:
+class FindONT:
     regex = r'(?P<common_dir>.*nanopore)/(?P<library>[A-Z]{2,5})/fastq/.+/(?P<basecaller>guppy)/(?P<version>\d+.\d+.\d+)/(?P<model>.+)/(?P<filename>.*_fastq_pass.fastq.gz)'
 
     def __init__(self, prefix, sample, cohort):
@@ -111,14 +111,15 @@ class OntStats:
         return self.df.index.unique().tolist()
 
     def apply_regex(self):
+        # Check if the DF is empty.
+        if self.df.empty:
+            raise OSError(f"Cannot find any files for {os.path.join(self.prefix, self.cohort, self.sample)}")
+
         regex_df = self.df.filepath.str.extract(self.__class__.regex, expand=True)
         self.df = pd.concat([self.df, regex_df], axis=1)
 
-        try:
-            # Just take the major version number
-            self.df["version"] = self.df["version"].str.split(".", n=1, expand=True)[0]
-        except KeyError:
-            LOG.warning(f"Something went wrong with the path: {self.df.filepath}")
+        # Just take the major version number
+        self.df["version"] = self.df["version"].str.split(".", n=1, expand=True)[0]
 
         self.df["directory_make"] = self.df.apply(
             lambda row: os.path.join(row.common_dir, row.library, "quick_stats"),
