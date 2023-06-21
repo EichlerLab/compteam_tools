@@ -140,8 +140,8 @@ class FindONT:
 
             if not os.path.exists(v):
                 LOG.info(f"Making {v} directory")
-                os.chmod(v, 0o775)
                 os.makedirs(v)
+                os.chmod(v, 0o775)
             else:
                 LOG.info(f"{v} exists, skipping.")
 
