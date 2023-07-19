@@ -19,11 +19,17 @@ logging.basicConfig(stream=sys.stdout, level="INFO", format='%(asctime)s - %(lev
 
 
 def get_parser():
-    """Get parser"""
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--sample', required=True, help='Sample')
-    parser.add_argument('--prefix', required=False, help='Common directory path of all cohorts in the LRA')
-    parser.add_argument('--cohort', required=True, help='Cohort, e.g. clinical, pop')
+    """Get options"""
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=__doc__
+    )
+
+    required = parser.add_argument_group('required')
+
+    required.add_argument('--sample', required=True, help='Sample')
+    required.add_argument('--cohort', required=True, help='Cohort, e.g. clinical, pop')
+    required.add_argument('--prefix', required=True, help='Common directory path of all cohorts in the LRA')
 
     return parser
 
@@ -48,7 +54,6 @@ def main():
 
 
 class CalculateStats:
-    """copy/pasta https://github.com/EichlerLab/compteam_tools/blob/main/ont_stats"""
     def __init__(self, files: list, sample):
         self.files = files
         self.sample = sample
@@ -56,6 +61,7 @@ class CalculateStats:
 
     @staticmethod
     def get_n50(vals):
+        """copy/pasta https://github.com/EichlerLab/ccs_stats/blob/master/rules/ccs_stats.snakefile"""
         vals = vals.sort_values(ascending=False)
         vals_csum = np.cumsum(vals)
         return vals.iloc[np.sum(vals_csum <= (vals_csum.iloc[-1] // 2))] / 1000
@@ -67,6 +73,7 @@ class CalculateStats:
 
     @property
     def stats(self) -> dict:
+        """copy/pasta https://github.com/EichlerLab/compteam_tools/blob/main/ont_stats"""
         working_df = self.df
 
         len_list = pd.Series(working_df[1].copy())

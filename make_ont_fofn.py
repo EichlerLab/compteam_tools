@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """
 Usage: ./make_ont_fofn.py --sample 14455_p1 --proj_dir absolute/path/to/clinical --output 14455_p1.fofn --filter_string 'lib=STD;model=sup-prom;bc=guppy;ver=6;ftype=bam'
+Author: Mei Wu, https://github.com/projectoriented
+
 This script will get you all the fastqs that belong to guppy ver 6.x.x for STD library
 Slack/email me (Mei) if you experience any problems or want additional features
 """
@@ -11,6 +13,35 @@ import pandas as pd
 import sys
 import argparse
 import os
+
+
+def main():
+    """Run script to output ont fofn"""
+    parser = get_parser()
+    args = parser.parse_args()
+
+    make_ont_fofn(sample=args.sample, fn=args.output, prefix=args.proj_dir, fltr_str=args.filter_string)
+
+
+def get_parser():
+    """Get options"""
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=__doc__
+    )
+
+    required = parser.add_argument_group('required')
+
+    required.add_argument('--sample', type=str, required=True,
+                          help='e.g. 14455_p1')
+    required.add_argument('--proj_dir', type=str, required=True,
+                          help='Absolute path for project directory.')
+    parser.add_argument('--filter_string', type=str, required=False,
+                        help='A filter string of k=v delimited by ; and have any of these keys: (bc, model, ver, lib)')
+    parser.add_argument('--output', '-o', type=str, required=False, default=sys.stdout,
+                        help='Output')
+
+    return parser
 
 
 def make_ont_fofn(sample, fn, prefix, fltr_str):
@@ -59,35 +90,6 @@ def make_ont_fofn(sample, fn, prefix, fltr_str):
     fofn_df.drop_duplicates(['lib', 'runid', 'bc', 'model'], inplace=True, keep='last')
 
     return fofn_df['fpath'].to_csv(fn, header=False, index=False)
-
-
-def main():
-    """Run script to output ont fofn"""
-    parser = get_parser()
-    args = parser.parse_args()
-
-    make_ont_fofn(sample=args.sample, fn=args.output, prefix=args.proj_dir, fltr_str=args.filter_string)
-
-
-def get_parser():
-    """Get options"""
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        description=__doc__
-    )
-
-    required = parser.add_argument_group('required')
-
-    required.add_argument('--sample', type=str, required=True,
-                        help='e.g. 14455_p1')
-    required.add_argument('--proj_dir', type=str, required=True,
-                        help='Absolute path for project directory.')
-    parser.add_argument('--filter_string', type=str, required=False,
-                        help='A filter string of k=v delimited by ; and have any of these keys: (bc, model, ver, lib)')
-    parser.add_argument('--output', '-o', type=str, required=False, default=sys.stdout,
-                        help='Output')
-
-    return parser
 
 
 if __name__ == "__main__":
