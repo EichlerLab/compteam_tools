@@ -61,7 +61,7 @@ class CalculateStats:
 
     @staticmethod
     def get_n50(vals):
-        """copy/pasta https://github.com/EichlerLab/ccs_stats/blob/master/rules/ccs_stats.snakefile"""
+        """copy/pasta https://github.com/EichlerLab/compteam_tools/blob/main/ont_stats"""
         vals = vals.sort_values(ascending=False)
         vals_csum = np.cumsum(vals)
         return vals.iloc[np.sum(vals_csum <= (vals_csum.iloc[-1] // 2))] / 1000
