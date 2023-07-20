@@ -3,7 +3,7 @@
 Usage: ./get_pb_stats.py --sample CHM1 --cohort pop --prefix /path/to/LRA
 Author: Mei Wu, https://github.com/projectoriented
 
-This is a script tuned for CCS/HiFi or Revio generated .fastq|.gz files.
+This is a script tuned for CCS/HiFi or Revio generated .fastq.gz files.
 """
 
 import os
@@ -128,7 +128,7 @@ class FindPB:
         self.sample = sample
         self.cohort = cohort
         self.glob_list = glob.glob(
-            f"{os.path.join(prefix, cohort, sample)}/raw_data/PacBio_HiFi/m*.fastq.gz")
+            f"{os.path.join(prefix, cohort, sample)}/raw_data/PacBio_HiFi/*m*.fastq.gz")
         self.df = pd.DataFrame(data=self.glob_list, columns=["filepath"])
 
     @property
