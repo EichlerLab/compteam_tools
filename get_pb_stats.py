@@ -80,7 +80,7 @@ class CalculateStats:
         """copy/pasta: https://github.com/EichlerLab/ccs_stats/blob/master/rules/ccs_stats.snakefile"""
         vals = vals.sort_values(ascending=False)
         vals_csum = np.cumsum(vals)
-        return vals.iloc[np.sum(vals_csum <= (vals_csum.iloc[-1] // 2)) + 1]
+        return vals.iloc[np.sum(vals_csum <= (vals_csum.iloc[-1] // 2))] / 1000
 
     @property
     def df(self):
