@@ -128,7 +128,7 @@ class FindPB:
         self.sample = sample
         self.cohort = cohort
         self.glob_list = glob.glob(
-            f"{os.path.join(prefix, cohort, sample)}/raw_data/PacBio_HiFi/*m*.fastq.gz")
+            f"{os.path.join(prefix, cohort, sample)}/raw_data/PacBio_HiFi/*.fastq.gz")
         self.df = pd.DataFrame(data=self.glob_list, columns=["filepath"])
 
     @property
