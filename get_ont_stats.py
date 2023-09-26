@@ -13,7 +13,6 @@ import argparse
 import pandas as pd
 import numpy as np
 
-
 LOG = logging.getLogger()
 logging.basicConfig(stream=sys.stdout, level="INFO", format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -44,19 +43,32 @@ def main():
     ont_obj = FindONT(prefix=prefix, sample=sample, cohort=cohort)
 
     ont_obj.apply_regex()
-
     ont_obj.make_directory()
+
     fastq_dict = ont_obj.get_fastqs()
 
     for k in fastq_dict.keys():
-        # Taking in account for periodic top-offs, just re-do these stats every time.
-        CalculateStats(files=fastq_dict[k], sample=sample).write_out(outpath=k)
+        final_df = pd.DataFrame()
+        for idx, row in fastq_dict[k].iterrows():
+            final_df = pd.concat(
+                [
+                    final_df,
+                    CalculateStats(filepath=[row.filepath], cell_name=row.run_id).stats
+                ]
+            )
+        # Add a total row
+        fastqs = fastq_dict[k].filepath.tolist()
+        total_df = CalculateStats(filepath=fastqs, cell_name="total").stats
+        final_df = pd.concat([final_df, total_df])
+
+        final_df.to_csv(k, sep='\t', index=False, header=True)
+        LOG.info(f"Wrote: {k}")
 
 
 class CalculateStats:
-    def __init__(self, files: list, sample):
-        self.files = files
-        self.sample = sample
+    def __init__(self, filepath: list, cell_name: str):
+        self.filepath = filepath
+        self.cell_name = cell_name
         self.genome = 3.1
 
     @staticmethod
@@ -68,11 +80,15 @@ class CalculateStats:
 
     @property
     def df(self):
-        working_df = pd.concat([pd.read_csv(file + '.fai', sep='\t', header=None, usecols=[0, 1]) for file in self.files])
+        working_df = pd.concat(
+            [
+                pd.read_csv(file + '.fai', sep='\t', header=None, usecols=[0, 1]) for file in self.filepath
+            ]
+        )
         return working_df
 
     @property
-    def stats(self) -> dict:
+    def stats(self) -> pd.DataFrame:
         """copy/pasta https://github.com/EichlerLab/compteam_tools/blob/main/ont_stats"""
         working_df = self.df
 
@@ -84,24 +100,18 @@ class CalculateStats:
         coverage = np.sum(len_list) / (self.genome * 1000000000)
         coverage_k = np.sum(len_list_k) / (self.genome * 1000000000)
 
-        return {
-                'SAMPLE': [self.sample],
-                'COVERAGE_X': ["{:.2f}".format(coverage)],
-                'COVERAGE_X_100_Kbp': ["{:.2f}".format(coverage_k)],
-                'READS': [len(len_list)],
-                'N50_Kbp': ["{:.2f}".format(self.get_n50(len_list))],
-                'FILES': ','.join(self.files)
-            }
-
-    def write_out(self, outpath):
-        stats_dict = self.stats
-        out_df = pd.DataFrame.from_dict(stats_dict)
-        out_df.to_csv(outpath, sep='\t', index=False)
-        LOG.info(f"Wrote: {outpath}")
+        return pd.DataFrame(data={
+            'CELL': [self.cell_name],
+            'COVERAGE_X': ["{:.2f}".format(coverage)],
+            'COVERAGE_X_100_Kbp': ["{:.2f}".format(coverage_k)],
+            'READS': [len(len_list)],
+            'N50_Kbp': ["{:.2f}".format(self.get_n50(len_list))],
+            'FILES': ','.join(self.filepath)
+        })
 
 
 class FindONT:
-    regex = r'(?P<common_dir>.*nanopore)/(?P<library>[A-Z]{2,5})/fastq/.+/(?P<basecaller>guppy)/(?P<version>\d+.\d+.\d+)/(?P<model>.+)/(?P<filename>.*_fastq_pass.fastq.gz)'
+    regex = r'(?P<common_dir>.*nanopore)/(?P<library>[A-Z]{2,5})/fastq/(?P<run_id>.+)/(?P<basecaller>.+)/(?P<version>\d+.\d+.\d+)/(?P<model>.+)/(?P<filename>.*_fastq_pass.fastq.gz)'
 
     def __init__(self, prefix, sample, cohort):
         self.prefix = prefix
@@ -155,12 +165,8 @@ class FindONT:
     def get_fastqs(self):
         fastq_dict = {}
         for v in self.unique_indicies:
-            dict_key = os.path.join(v[3], v[-1]) # directory_make + n50_filename
-            try:
-                list_of_fastqs = self.df.loc[v, "filepath"].tolist()
-            except AttributeError:
-                list_of_fastqs = [self.df.loc[v, "filepath"]]
-            fastq_dict[dict_key] = list_of_fastqs
+            dict_key = os.path.join(v[3], v[-1])  # directory_make + n50_filename
+            fastq_dict[dict_key] = self.df.loc[v, ["filepath", "run_id"]]
         return fastq_dict
 
 
