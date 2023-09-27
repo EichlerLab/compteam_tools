@@ -49,7 +49,11 @@ def main():
 
     for k in fastq_dict.keys():
         final_df = pd.DataFrame()
-        for idx, row in fastq_dict[k].iterrows():
+        working_df = fastq_dict[k]
+        if isinstance(working_df, pd.Series):
+            working_df = working_df.to_frame().T
+
+        for idx, row in working_df.iterrows():
             final_df = pd.concat(
                 [
                     final_df,
@@ -57,7 +61,7 @@ def main():
                 ]
             )
         # Add a total row
-        fastqs = fastq_dict[k].filepath.tolist()
+        fastqs = working_df.filepath.tolist()
         total_df = CalculateStats(filepath=fastqs, cell_name="total").stats
         final_df = pd.concat([final_df, total_df])
 
