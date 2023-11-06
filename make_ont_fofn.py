@@ -85,6 +85,24 @@ def make_ont_fofn(sample, fn, prefix, fltr_str):
     if fofn_df.empty:
         sys.exit(f'No {file_type} matched your filters for {sample}- please try again :)')
 
+    # Make sure we follow the real path and not soft links.
+    fofn_df["is_link"] = fofn_df.apply(lambda row: 1 if os.path.islink(row.fpath) else 0, axis=1)
+    fofn_df = fofn_df.query("is_link == 0").reset_index(drop=True).drop(columns=["is_link"])
+
+    # Make sure we have the real path from hard links.
+    for row in fofn_df.itertuples():
+        try:
+            if os.stat(row.fpath).st_nlink > 1:
+                fofn_df.loc[row.Index, "true_path"] = os.path.realpath(row.fpath)
+
+                fofn_df.loc[row.Index, "fpath"] = os.path.realpath(row.fpath)
+            else:
+                fofn_df.loc[row.Index, "true_path"] = row.fpath
+        except FileNotFoundError:
+            fofn_df.drop([row.Index], inplace=True)
+
+    fofn_df = fofn_df.drop_duplicates(subset=["true_path"], keep="first").drop(columns=["true_path"])
+
     # Drop the duplicate samples but keeping the one run with latest version
     fofn_df.sort_values(['ver'], inplace=True)
     fofn_df.drop_duplicates(['lib', 'runid', 'bc', 'model'], inplace=True, keep='last')
