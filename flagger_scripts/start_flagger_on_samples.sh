@@ -5,7 +5,7 @@
 #  SAMPLES_TO_RUN="samples.txt"
 #  FLAGGER_PARAMS_JSON="flagger_params_w_sample_placeholder.json"
 #  JSON_SAMPLE_PLACEHOLDER="insert_sample_here"  # use string not found elsewhere in json
-#  FLAGGER_PATH="/net/eichler/vol26/7200/software/pipelines/flagger-0.3.3/flagger_sge_variable_out_json.sh"
+#  FLAGGER_PATH="/net/eichler/vol26/7200/software/pipelines/flagger-0.3.3/flagger_sge.sh"
 #
 # Example samples.txt:
 #  HG01457-hifiasm
