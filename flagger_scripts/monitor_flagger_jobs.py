@@ -109,14 +109,16 @@ def print_sample_status(sample, cromwell_dirs, qstat_jobs):
         )
     if end_to_end_jobs and subjobs:
         print('Summary: Running')
-    elif end_to_end_jobs:
-        print('Summary: Warning: End-to-end job running but no subjobs running')
-    elif subjobs:
-        print('Summary: Warning: Subjobs running but no end-to-end jobs running')
     elif final_output_files:
         print('Summary: Done')
-    else:
+    elif not (end_to_end_jobs or subjobs):
         print('Summary: Failed')
+    else:
+        print('Summary: Failed?')
+    if end_to_end_jobs and not subjobs:
+        print('Warning: End-to-end job running but no subjobs running')
+    elif subjobs and not end_to_end_jobs:
+        print('Warning: Subjobs running but no end-to-end jobs running')
     print('\n------\n')
 
 
