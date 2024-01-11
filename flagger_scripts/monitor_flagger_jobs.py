@@ -33,7 +33,7 @@ def main():
         'runProjectBlocksForFlagger/*/call-bam2pafHap1/inputs/*/*'
     ):
         cromwell_dir = str(p.parts[2])
-        sample = p.stem
+        sample = p.stem.replace('_hap1', '').replace('_h1', '')
         if sample in samples_in:
             cromwell_dirs_per_sample[sample].add(cromwell_dir)
 
