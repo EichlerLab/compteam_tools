@@ -14,7 +14,7 @@ def get_browsershot(server_url, session_file, position_string, ofname):
 		hgsid = ""
 	url = "".join([server_url, "/cgi-bin/hgTracks", hgsid, "?hgS_doLoadUrl=submit&hgS_loadUrlName=", session_file, "&hgt.psOutput=on&pix=2000", position_string])
 	page = requests.get(url)
-	print (url)
+	print(url)
 	if page.status_code != requests.codes.ok:
 		print ("Invalid page URL: %s\n" % url)
 		print ("Make sure your session file is globally readable and in a web-accessible directory\n")

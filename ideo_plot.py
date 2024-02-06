@@ -16,6 +16,7 @@ saved as "ideogram.txt". Lines look like this::
 
 from matplotlib import pyplot as plt
 from matplotlib.collections import BrokenBarHCollection
+from matplotlib.collections import PatchCollection
 import pandas as pd
 import argparse
 
@@ -32,14 +33,14 @@ parser.add_argument("--asm2", "-b", type=str, required=False)
 
 args = parser.parse_args()
 
-# args = pd.Series(['chm13', 'results/HG002_rev-1_hifiasm_h1.bed', 'h1.test.pdf'], index=['ref_name', 'asm1', 'outfile'])
+# args = pd.Series(['chm13', 'h1_merge.bed', 'h1.test.pdf', None, 'h1_test', 'h1_merge.bed'], index=['ref_name', 'asm1', 'outfile', 'chrom', 'sample', 'asm2'])
 
 
 # Here's the function that we'll call for each dataframe (once for chromosome
-# ideograms, once for genes).  The rest of this script will be prepping data
+# ideograms, once for each assembly).  The rest of this script will be prepping data
 # for input to this function
 #
-def chromosome_collections(df, y_positions, height, ptype, **kwargs):
+def chromosome_collections(df, y_positions, height, ptype, pname, **kwargs):
     """
     Yields BrokenBarHCollection of features that can be added to an Axes
     object.
@@ -59,23 +60,49 @@ def chromosome_collections(df, y_positions, height, ptype, **kwargs):
     if 'width' not in df.columns:
         del_width = True
         df['width'] = df['end'] - df['start']
+    # plot each df with 
     for chrom, group in df.groupby('#chrom'):
-        # print(chrom)
         xranges = group[['start', 'width']].values
-        if ptype != 'ideogram':
+        if ptype == 'aln':
+            pivot = group[['vert']].values
             for i, xval in enumerate(xranges):
-                if ptype == 'asm1':
+                if pname == 'asm1':
                     yield BrokenBarHCollection(
-                        [xval], (y_positions[chrom]+(height*(0)**(i%2)), height), facecolors=asm_color_dict[ptype][i%2], **kwargs
+                        [xval], (y_positions[chrom]+(height*(0)**(pivot[i][0])), height), facecolors=asm_color_dict[pname][pivot[i][0]], **kwargs
                     )
                 else:
                     yield BrokenBarHCollection(
-                        [xval], (y_positions[chrom]+(height*(0)**(i%2))-(gene_height*2+chrom_height+gene_padding*2), height), facecolors=asm_color_dict[ptype][i%2], **kwargs
+                        [xval], (y_positions[chrom]+(height*(0)**(pivot[i][0]))-(gene_height*2+chrom_height+gene_padding*2), height), facecolors=asm_color_dict[pname][pivot[i][0]], **kwargs
                     )
-        else:
+        elif ptype == 'ideo':
             yield BrokenBarHCollection(
                     xranges, (y_positions[chrom], height), facecolors=group['colors'], **kwargs
                 )
+        else:
+            ends = group[['end']].values
+            starts = group[['start']].values
+            pivot = group[['vert']].values
+            contigs = group[['name']].values
+            current_sequence = None
+            for i, xval in enumerate(xranges):
+                sequence = contigs[i]
+                if sequence != current_sequence:
+                    current_sequence = sequence
+                    start_hatch = ends[i]
+                elif current_sequence is not None:
+                    # ax.barh(current_sequence, start - start_hatch, left=start_hatch, height=0.5,
+                            # color=sequence_colors[current_sequence], hatch='/')
+                    hatch_coords = [start_hatch, starts[i]-start_hatch]
+                    if pname == 'asm1':
+                        yield BrokenBarHCollection(
+                            [hatch_coords], (y_positions[chrom]+(height*(0)**(pivot[i][0])), height), facecolors=asm_color_dict[pname][pivot[i][0]], hatch='/', **kwargs
+                        )
+                    else:
+                        yield BrokenBarHCollection(
+                            [hatch_coords], (y_positions[chrom]+(height*(0)**(pivot[i][0]))-(gene_height*2+chrom_height+gene_padding*2), height), facecolors=asm_color_dict[pname][pivot[i][0]], **kwargs
+                        )
+                current_sequence = sequence
+                start_hatch = ends[i]
     if del_width:
         del df['width']
 
@@ -102,8 +129,8 @@ figsize = (6, 8)
 
 
 cyto_dict = {
-    'hg38' : '/net/eichler/vol27/projects/hgsvc/nobackups/svpop/data/anno/bands/bands.bed', 
-    'chm13' : '/net/eichler/vol26/eee_shared/assemblies/CHM13/T2T/v2.0/anno/cyto.bed'
+    'hg38' : '/net/eichler/vol28/projects/hgsvc/nobackups/svpop/data/anno/bands/bands.bed', 
+    'chm13' : '/net/eichler/vol28/eee_shared/assemblies/CHM13/T2T/v2.0/anno/cyto.bed'
     }
 
 
@@ -164,13 +191,36 @@ asm_dict = {}
 df = pd.read_csv(args.asm1, names=['#chrom', 'start', 'end', 'name', 'mapq'], sep='\t', header=None)
 df = df[df['#chrom'].apply(lambda x: x in chromosome_list)]
 df['width'] = df['end'] - df['start']
-asm_dict['asm1'] = df.copy()
+df = df.sort_values(['#chrom', 'start', 'end']).copy()
+chrom_all = pd.DataFrame()
+for chrom in df['#chrom'].unique():
+    chrom_df = df.loc[df['#chrom'] == chrom].copy()
+    contig_dict = {}
+    vert = None
+    for i, contig in enumerate(chrom_df['name']):
+        vert = 1 if vert != 1 else 0
+        contig_dict[contig] = vert
+    chrom_df['vert'] = chrom_df['name'].apply(lambda val: contig_dict[val])
+    chrom_all = pd.concat([chrom_all, chrom_df])
+asm_dict['asm1'] = chrom_all.copy()
 
+# Load and transform 
 if args.asm2:
     df = pd.read_csv(args.asm2, names=['#chrom', 'start', 'end', 'name', 'mapq'], sep='\t', header=None)
     df = df[df['#chrom'].apply(lambda x: x in chromosome_list)]
     df['width'] = df['end'] - df['start']
-    asm_dict['asm2'] = df.copy()  
+    df = df.sort_values(['#chrom', 'start', 'end']).copy()
+    chrom_all = pd.DataFrame()
+    for chrom in df['#chrom'].unique():
+        chrom_df = df.loc[df['#chrom'] == chrom].copy()
+        contig_dict = {}
+        vert = None
+        for i, contig in enumerate(chrom_df['name']):
+            vert = 0 if vert != 0 else 1
+            contig_dict[contig] = vert
+        chrom_df['vert'] = chrom_df['name'].apply(lambda val: contig_dict[val])
+        chrom_all = pd.concat([chrom_all, chrom_df])
+    asm_dict['asm2'] = chrom_all.copy()
 
 
 fig = plt.figure(figsize=figsize)
@@ -182,21 +232,58 @@ for i, chrom in enumerate(chromosome_list):
 
 # Now all we have to do is call our function for the ideogram data...
 print("adding ideograms...")
-for collection in chromosome_collections(ideo, chrom_ybase, chrom_height, 'ideogram'):
+for collection in chromosome_collections(ideo, chrom_ybase, chrom_height, 'ideo', 'ideogram'):
     ax.add_collection(collection)
 
 # ...and the gene data
 for asm in asm_dict:
     print(f"plotting {asm}")
-    for collection in chromosome_collections(
-        asm_dict[asm], gene_ybase, gene_height, asm, alpha=1.0, linewidths=0.5,
-    ):
-        ax.add_collection(collection)
+    for modifier in ['aln', 'fill']:
+        for collection in chromosome_collections(
+            asm_dict[asm], gene_ybase, gene_height, modifier, asm, alpha=1.0, linewidths=0.5,
+        ):
+            ax.add_collection(collection)
+
+# define an object that will be used by the legend
+class MulticolorPatch(object):
+    def __init__(self, colors):
+        self.colors = colors
+        
+# define a handler for the MulticolorPatch object
+class MulticolorPatchHandler(object):
+    def legend_artist(self, legend, orig_handle, fontsize, handlebox):
+        width, height = handlebox.width, handlebox.height
+        patches = []
+        for i, c in enumerate(orig_handle.colors):
+            patches.append(plt.Rectangle([width/len(orig_handle.colors) * i - handlebox.xdescent, 
+                                          -handlebox.ydescent],
+                           width / len(orig_handle.colors),
+                           height, 
+                           facecolor=c, 
+                           edgecolor='none'))
+
+        patch = PatchCollection(patches,match_original=True)
+
+        handlebox.add_artist(patch)
+        return patch
+
+
+h, l = ax.get_legend_handles_labels()
+
+h.append(MulticolorPatch(['tab:orange', 'tab:blue']))
+l.append("asm1")
+
+h.append(MulticolorPatch(['tab:green', 'tab:purple']))
+l.append("asm2")
+
+plt.legend(h, l, loc='lower right', 
+         handler_map={MulticolorPatch: MulticolorPatchHandler()}) 
+         # bbox_to_anchor=(.125,.875))
 
 # Axes tweaking
 ax.set_yticks([chrom_centers[i] for i in chromosome_list])
 ax.set_yticklabels(chromosome_list)
 ax.set_title(f"{args.sample} vs {args.ref_name.upper()}")
-ax.axis('tight')
-plt.savefig(args.outfile)
+#ax.axis('off')
+plt.savefig(args.outfile, bbox_inches='tight')
 plt.close('all')

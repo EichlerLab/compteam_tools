@@ -1,0 +1,39 @@
+#!/bin/env bash
+
+module load pbconda/202301 samtools/1.12
+
+handle=$( echo ${1} | sed 's/.bam//' )
+
+echo ${handle}
+
+if [[ ! -f ${1}.pbi ]]; then
+	echo "Indexing bam"
+	pbindex ${1}
+fi
+
+
+#if [[ ! -f ${handle}.fasta.gz.fai ]]; then
+#	echo "Making fasta"
+#	if [[ ! -f ${handle}.fasta ]]; then
+#		bam2fasta -o ${handle} -u $1
+#		bgzip ${handle}.fasta
+#		samtools faidx ${handle}.fasta.gz
+#	fi
+# fi
+
+if [[ ! -f ${handle}.fastq.gz.fai ]]; then
+	echo "Making fastq"
+	if [[ ! -f ${handle}.fastq ]]; then
+		bam2fastq -o ${handle} -u $1
+		bgzip ${handle}.fastq
+		samtools fqidx ${handle}.fastq.gz
+	fi
+fi
+
+chmod 444 ${handle}.fastq.gz.fai
+chmod 444 ${handle}.fastq.gz
+chmod 444 ${handle}.fastq.gz.gzi
+
+#chmod 444 ${handle}.fasta.gz.fai
+#chmod 444 ${handle}.fasta.gz
+#chmod 444 ${handle}.fasta.gz.gzi

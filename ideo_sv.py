@@ -1,14 +1,19 @@
 #!/bin/env python
 
 import pandas as pd
+import pandas as pd
+from pybedtools import BedTool
 import os
 import numpy as np
 import sys
 import argparse
+import pylab as pl
+from matplotlib import collections  as mc
+sys.path.append('/net/eichler/vol26/7200/software/pipelines/svpop/svpop-3.4.0/dep')
+sys.path.append('/net/eichler/vol26/7200/software/pipelines/svpop/svpop-3.4.0')
+import svpoplib
+import matplotlib.pyplot as plt
 
-sys.path.append('/net/eichler/vol27/projects/structural_variation/nobackups/tools/svpop/202006')
-
-import analib
 
 def find_lim(ylimit):
         # Set scaled y-limit and axis positions
@@ -218,7 +223,10 @@ intersect = ''
 
 if args.intersect:
     patterns.append(args.a_pattern)
-    intersect = 'A,B'   
+    intersect = 'AB'
+elif args.only_a and args.only_b:
+    patterns.append(args.a_pattern)
+    patterns.append(args.b_pattern)
 elif args.only_a:
     patterns.append(args.a_pattern)
     intersect = 'A'
@@ -234,13 +242,6 @@ else:
 svtypes = args.svtype.split('|')
 vartypes = args.vartype.split('|')
 
-# Paths
-# BED_FILT = '/net/eichler/vol27/projects/hprc/nobackups/data_table/qc/hprc_only/hprc_filt/_{svtype}_insdel.bed.gz'
-
-# BED_DROPPED = '/net/eichler/vol27/projects/hprc/nobackups/data_table/qc/hprc_only/hgsvc_filt/{sample}_{svtype}_insdel.bed.gz'
-
-# # BED_ALL = '/net/eichler/vol27/projects/hprc/nobackups/data_table/preqc/hprc_only/tsv/variants_hprc_only_{svtype}_insdel.tsv.gz'
-# BED_ALL = '/net/eichler/vol27/projects/marvin_c/nobackups/data_table/cmg_post/tsv/variants_freeze1post_{svtype}_insdel.tsv.gz'
 
 # Fig params
 BIN_SIZE = np.int32(1e6)
@@ -251,18 +252,18 @@ LABEL_SPACE = 0.25  # Add this proportion of the y range to the upper limit to m
 
 
 if args.ref == 'chm13_v1.1':
-	FAI_FILE_NAME = '/net/eichler/vol26/eee_shared/assemblies/CHM13/T2T/v1.1/chm13_v1.1_plus38Y_masked.fasta.fai'
-	BAND_FILE_NAME = '/net/eichler/vol26/eee_shared/assemblies/CHM13/T2T/v1.1/anno/cyto.bed'
-	GAP_FILE_NAME = '/net/eichler/vol26/eee_shared/assemblies/CHM13/T2T/v1.1/anno/gap.bed'
-	SD_FILE_NAME = '/net/eichler/vol26/eee_shared/assemblies/CHM13/T2T/v1.1/anno/sd-max-frac.bed'
-	TR_FILE_NAME = '/net/eichler/vol26/eee_shared/assemblies/CHM13/T2T/v1.1/anno/trf_regions_200_0.bed'
+	FAI_FILE_NAME = '/net/eichler/vol28/eee_shared/assemblies/CHM13/T2T/v1.1/chm13_v1.1_plus38Y_masked.fasta.fai'
+	BAND_FILE_NAME = '/net/eichler/vol28/eee_shared/assemblies/CHM13/T2T/v1.1/anno/cyto.bed'
+	GAP_FILE_NAME = '/net/eichler/vol28/eee_shared/assemblies/CHM13/T2T/v1.1/anno/gap.bed'
+	SD_FILE_NAME = '/net/eichler/vol28/eee_shared/assemblies/CHM13/T2T/v1.1/anno/sd-max-frac.bed'
+	TR_FILE_NAME = '/net/eichler/vol28/eee_shared/assemblies/CHM13/T2T/v1.1/anno/trf_regions_200_0.bed'
 elif args.ref == 'hg38':
 	# Fig tracks
-	FAI_FILE_NAME = '/net/eichler/vol26/eee_shared/assemblies/hg38/no_alt/hg38.no_alt.fa.fai'
-	BAND_FILE_NAME = '/net/eichler/vol27/projects/hgsvc/nobackups/svpop/data/anno/bands/bands.bed'	
-	GAP_FILE_NAME = '/net/eichler/vol27/projects/hgsvc/nobackups/svpop/data/anno/gap/gap.bed'	
-	SD_FILE_NAME = '/net/eichler/vol27/projects/hgsvc/nobackups/svpop/data/anno/sd/sd-max-frac.bed'
-	TR_FILE_NAME = '/net/eichler/vol27/projects/hgsvc/nobackups/svpop/data/anno/trf/trf_regions_200_0.bed'
+	FAI_FILE_NAME = '/net/eichler/vol28/eee_shared/assemblies/hg38/no_alt/hg38.no_alt.fa.fai'
+	BAND_FILE_NAME = '/net/eichler/vol28/projects/hgsvc/nobackups/svpop/data/anno/bands/bands.bed'	
+	GAP_FILE_NAME = '/net/eichler/vol28/projects/hgsvc/nobackups/svpop/data/anno/gap/gap.bed'	
+	SD_FILE_NAME = '/net/eichler/vol28/projects/hgsvc/nobackups/svpop/data/anno/sd/sd-max-frac.bed'
+	TR_FILE_NAME = '/net/eichler/vol28/projects/hgsvc/nobackups/svpop/data/anno/trf/trf_regions_200_0.bed'
 
 
 chroms = ['chr%d' % num for num in range(1,23)]
@@ -279,13 +280,13 @@ if len(patterns) == 1:
             pass
         else:
             df_int = pd.DataFrame()
-            for svtype in ['ins', 'del']:
+            for svtype in svtypes:
                 df_int = df_int.append(pd.read_csv(args.i_file.format(svtype=svtype, vartype=vartype), sep='\t', header=0))
             if args.intersect:
                 df_all = pd.merge(df_all, df_int, left_on='ID', right_on='ID_A')
             else:
                 df_all = pd.merge(df_all, df_int, left_on='ID', right_on=f'ID_{intersect}')
-            df_all = df_all.loc[df_all['SOURCE_SET'] == intersect]
+            df_all = df_all.loc[df_all['SOURCE_SET'].str.replace(",", "") == intersect]
         ### Figure ###
         # Read ideo bands
         df_band = pd.read_csv(BAND_FILE_NAME, sep='\t')
@@ -293,7 +294,7 @@ if len(patterns) == 1:
         df_sd = pd.read_csv(SD_FILE_NAME, sep='\t')
         df_tr = pd.read_csv(TR_FILE_NAME, sep='\t', header=None, names=('#CHROM', 'POS', 'END'))
         # Make figure
-        ideo_hist = analib.plot.ideo.ideo_hist(None, FAI_FILE_NAME, df_band, df_gap, df_sd, df_tr, cb_func=ideo_mono)
+        ideo_hist = svpoplib.plot.ideo.ideo_hist(None, FAI_FILE_NAME, df_band, df_gap, df_sd, df_tr, cb_func=ideo_mono)
         # Save
         type_label = "".join(svtypes)
         ideo_hist.fig.savefig(f'{args.output}-{vartype}_{type_label}.png', bbox_inches='tight')
@@ -307,6 +308,14 @@ if len(patterns) == 2:
         for svtype in svtypes:
             df_a = df_a.append(pd.read_csv(patterns[0].format(svtype=svtype, vartype=vartype), sep='\t', usecols=['#CHROM', 'POS', 'END', 'SVTYPE', 'ID']).dropna())
             df_b = df_b.append(pd.read_csv(patterns[1].format(svtype=svtype, vartype=vartype), sep='\t',usecols=['#CHROM', 'POS', 'END', 'SVTYPE', 'ID']).dropna())
+        if args.only_a and args.only_b:
+            df_int = pd.DataFrame()
+            for svtype in svtypes:
+                df_int = df_int.append(pd.read_csv(args.i_file.format(svtype=svtype, vartype=vartype), sep='\t', header=0))
+            df_a_int = df_int.loc[df_int['SOURCE_SET'].str.replace(",", "") == 'A'][['ID_A']].rename(columns={'ID_A' : 'ID'}) 
+            df_b_int = df_int.loc[df_int['SOURCE_SET'].str.replace(",", "") == 'B'][['ID_B']].rename(columns={'ID_B' : 'ID'})
+            df_a = df_a.merge(df_a_int).copy() 
+            df_b = df_b.merge(df_b_int).copy() 
         ### Figure ###
         # Read ideo bands
         df_band = pd.read_csv(BAND_FILE_NAME, sep='\t')
@@ -314,7 +323,7 @@ if len(patterns) == 2:
         df_sd = pd.read_csv(SD_FILE_NAME, sep='\t')
         df_tr = pd.read_csv(TR_FILE_NAME, sep='\t', header=None, names=('#CHROM', 'POS', 'END'))
         # Make figure
-        ideo_hist = analib.plot.ideo.ideo_hist(None, FAI_FILE_NAME, df_band, df_gap, df_sd, df_tr, cb_func=ideo_cb)
+        ideo_hist = svpoplib.plot.ideo.ideo_hist(None, FAI_FILE_NAME, df_band, df_gap, df_sd, df_tr, cb_func=ideo_cb)
         # Save
         type_label = "".join(svtypes)
         ideo_hist.fig.savefig(f'{args.output}-{vartype}_{type_label}.png', bbox_inches='tight')

@@ -262,14 +262,14 @@ SPACER_PROP = 0.325  # Shift lower bars by this amount to make space for ideo
 LABEL_SPACE = 0.25  # Add this proportion of the y range to the upper limit to make space for the chromosome label
 
 if args.ref == 'chm13':
-        FAI_FILE_NAME = '/net/eichler/vol26/eee_shared/assemblies/CHM13/T2T/v1.1/chm13_v1.1_plus38Y_masked.fasta.fai'
-        BAND_FILE_NAME = '/net/eichler/vol26/eee_shared/assemblies/CHM13/T2T/v1.1/anno/cyto.bed'
-        GAP_FILE_NAME = '/net/eichler/vol26/eee_shared/assemblies/CHM13/T2T/v1.1/anno/gap.bed'
-        SD_FILE_NAME = '/net/eichler/vol26/eee_shared/assemblies/CHM13/T2T/v1.1/anno/sd-max-frac.bed'
-        TR_FILE_NAME = '/net/eichler/vol26/eee_shared/assemblies/CHM13/T2T/v1.1/anno/trf_regions_200_0.bed'
+        FAI_FILE_NAME = '/net/eichler/vol28/eee_shared/assemblies/CHM13/T2T/v1.1/chm13_v1.1_plus38Y_masked.fasta.fai'
+        BAND_FILE_NAME = '/net/eichler/vol28/eee_shared/assemblies/CHM13/T2T/v1.1/anno/cyto.bed'
+        GAP_FILE_NAME = '/net/eichler/vol28/eee_shared/assemblies/CHM13/T2T/v1.1/anno/gap.bed'
+        SD_FILE_NAME = '/net/eichler/vol28/eee_shared/assemblies/CHM13/T2T/v1.1/anno/sd-max-frac.bed'
+        TR_FILE_NAME = '/net/eichler/vol28/eee_shared/assemblies/CHM13/T2T/v1.1/anno/trf_regions_200_0.bed'
 elif args.ref == 'hg38':
         # Fig tracks
-        FAI_FILE_NAME = '/net/eichler/vol26/eee_shared/assemblies/hg38/no_alt/hg38.no_alt.fa.fai'
+        FAI_FILE_NAME = '/net/eichler/vol28/eee_shared/assemblies/hg38/no_alt/hg38.no_alt.fa.fai'
         BAND_FILE_NAME = '/net/eichler/vol27/projects/hgsvc/nobackups/svpop/data/anno/bands/bands.bed'
         GAP_FILE_NAME = '/net/eichler/vol27/projects/hgsvc/nobackups/svpop/data/anno/gap/gap.bed'
         SD_FILE_NAME = '/net/eichler/vol27/projects/hgsvc/nobackups/svpop/data/anno/sd/sd-max-frac.bed'
@@ -293,6 +293,7 @@ if len(patterns) == 1:
         ideo_hist = analib.plot.ideo.ideo_hist(None, FAI_FILE_NAME, df_band, df_gap, df_sd, df_tr, cb_func=ideo_mono)
         # Save
         ideo_hist.fig.savefig(f'{args.output}-snv_snv.png', bbox_inches='tight')
+        ideo_hist.fig.savefig(f'{args.output}-snv_snv.svg', bbox_inches='tight')
         ideo_hist.fig.savefig(f'{args.output}-snv_snv.pdf', bbox_inches='tight')
     else:
         df_int = pd.read_csv(args.i_file, sep='\t', header=0)
@@ -311,6 +312,7 @@ if len(patterns) == 1:
         ideo_hist = analib.plot.ideo.ideo_hist(None, FAI_FILE_NAME, df_band, df_gap, df_sd, df_tr, cb_func=ideo_mono)
         # Save
         ideo_hist.fig.savefig(f'{args.output}-snv_snv.png', bbox_inches='tight')
+        ideo_hist.fig.savefig(f'{args.output}-snv_snv.svg', bbox_inches='tight')
         ideo_hist.fig.savefig(f'{args.output}-snv_snv.pdf', bbox_inches='tight')
 
 
@@ -327,5 +329,6 @@ if len(patterns) == 2:
     ideo_hist = analib.plot.ideo.ideo_hist(None, FAI_FILE_NAME, df_band, df_gap, df_sd, df_tr, cb_func=ideo_cb)
     # Save
     ideo_hist.fig.savefig(f'{args.output}-snv_snv.png', bbox_inches='tight')
+    ideo_hist.fig.savefig(f'{args.output}-snv_snv.svg', bbox_inches='tight')
     ideo_hist.fig.savefig(f'{args.output}-snv_snv.pdf', bbox_inches='tight')
 

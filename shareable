@@ -1,0 +1,5 @@
+#!/bin/env bash
+
+# One liner for converting locally stored files into publicly facing URLs
+
+readlink -f $1 | sed 's/\/net\/eichler\/vol28\/projects\/web_files\/nobackups/https:\/\/eichlerlab.gs.washington.edu/'

@@ -1,12 +1,20 @@
 #!/bin/env python
 
-
 import pandas as pd
 import argparse
 import numpy as np
 import glob
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
+import logging
+import sys
 
 
+logging.basicConfig(
+    format="%(levelname)s (%(asctime)s): %(message)s (Line: %(lineno)d [%(filename)s])",
+    datefmt="%m/%d/%Y %I:%M:%S %p",
+    level=logging.WARNING,
+)
 
 def get_n50(vals):
 	vals = vals.sort_values(ascending=False)
@@ -14,19 +22,43 @@ def get_n50(vals):
 	return vals.iloc[np.sum(vals_csum <= (vals_csum.iloc[-1] // 2))]/1000
 
 
+def gb_formatter(x,pos):
+	return f"{x / 1000000000} Gbp"
 
-parser = argparse.ArgumentParser() 
+def mb_formatter(x, pos):
+	return f"{int(x / 1000000)} Mbp"
+
+def kb_formatter(x, pos):
+	return f"{int(x / 1000)} kbp"
+
+def load_sum_hist(len_list=None, bins=None):
+	bin_df = pd.DataFrame({"BIN":bins})
+	bin_df["BIN"] = bin_df.apply(lambda x:x//BIN_SIZE)
+	len_df = pd.DataFrame({"SUM":len_list})
+	len_df["BIN"] = len_df["SUM"].apply(lambda x:x//BIN_SIZE)
+	sum_len_df = len_df.groupby("BIN").sum()
+	sum_hist = pd.merge(bin_df,sum_len_df, on="BIN",how="left").fillna(0)
+	return sum_hist
+	
+	
+
+parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter) 
 
 parser.add_argument('--sample', '-s', type=str, required=False, help='Sample name to summarize if within the long_read_archive')
-parser.add_argument('--seq_type', '-q', type=str, required=False, help='Sequencing type to count [default: UL|STD]', default='STD|UL')
+parser.add_argument('--seq_type', '-q', type=str, required=False, help='Sequencing type to count', default='STD|UL')
 parser.add_argument('--fofn', '-f', type=str, required=False, help='FOFN of sequence reads MUST BE INDEXED')
 parser.add_argument('--genome', '-g', type=float, required=False, help='Genome size in Gbp', default=3.1)
-parser.add_argument('--cohort', '-c', type=str, required=False, help='cohort to search along [default : pop ]', default='pop')
+parser.add_argument('--cohort', '-c', type=str, required=False, help='cohort to search along', default='pop')
+parser.add_argument('--runid', '-r', type=str, required=False, help='Individual run to select for')
 parser.add_argument('--outfile', '-o', type=str, required=False, help='Output file to write to', default='/dev/stdout')
 parser.add_argument('--model', '-m', type=str, required=False, help='Basecalling model to calculate coverage for')
 parser.add_argument('--version', '-v', type=str, required=False, help='Basecaller version to calculate coverage for')
-parser.add_argument('--tab', '-t', required=False, action='store_true', help='Basecaller version to calculate coverage for')
-
+parser.add_argument('--tab', '-t', required=False, action='store_true', help='Output information in a tab-delimited format')
+parser.add_argument('--plot', '-p', type=str, required=False, help='Plot the read length distribution and save to the provided argument')
+parser.add_argument('--log', '-l', required=False, action='store_true', default=False, help='Plot the read length distribution on a log scale')
+parser.add_argument('--length_limit', '-x', type=int, required=False, help='Limit of the read length to be displayed on the plot')
+parser.add_argument('--cumulative', '-u', required=False, action='store_true', default=False, help='Plot the cumulative sum of base pairs by read length')
+parser.add_argument('--window', '-w', required=False, type=int, default=10000, help='Read length window size for plotting bins')
 
 args = parser.parse_args()
 
@@ -40,7 +72,9 @@ if args.sample and not args.fofn:
 	if args.model:
 		file_list = [ file for file in file_list if args.model in file ]
 	if args.version:
-		file_lisit = [ file for file in file_list if args.version in file ]
+		file_list = [ file for file in file_list if args.version in file ]
+	if args.runid:
+		file_list = [ file for file in file_list if args.runid in file ]
 	df = pd.concat([pd.read_csv(file, sep='\t', header=None, usecols=[0,1]) for file in file_list])
 else:
 	fofn_df = pd.read_csv(args.fofn, sep='\t', header=None, index_col=0)
@@ -73,3 +107,44 @@ if not args.tab:
 else:
 	out_df = pd.DataFrame.from_dict({'SAMPLE' : [args.sample], 'COVERAGE' : [coverage], 'COVERAGE_100' : [coverage_k], 'READS' : [len(len_list)], 'N50_K' : [get_n50(len_list)]})
 	out_df.to_csv(args.outfile, sep='\t', index=False)
+
+if args.plot:
+	BIN_SIZE = args.window
+	if not args.plot.endswith("png"):
+		logging.error("-p/--plot must end with png")
+		sys.exit(1)
+	fig, ax = plt.subplots()
+	
+	if args.log:
+		ax.set_xscale('log')
+		ax.set_xlabel("Read Length (log)")
+	else:
+		ax.set_xlabel("Read Length")
+
+	bins = np.arange(0, max(len_list) + BIN_SIZE, BIN_SIZE)
+	sum_hist = load_sum_hist(len_list = len_list, bins = bins)[:-1]
+
+	ax.xaxis.set_major_formatter(ticker.FuncFormatter(kb_formatter))
+
+	if args.cumulative:
+		if args.length_limit:
+			ax.set_xlim(args.length_limit,0)
+		else:
+			ax.set_xlim(max(bins),0)
+		
+		
+		cumulative_hist = np.cumsum(sum_hist[::-1])[::-1]
+		ax.bar(bins[:-1], cumulative_hist["SUM"], width=BIN_SIZE, align="edge" )
+		ax.set_ylabel("Cumulative Sum of the Number of Bases")
+		ax.yaxis.set_major_formatter(ticker.FuncFormatter(gb_formatter))
+	else:
+		if args.length_limit:
+			ax.set_xlim(0,args.length_limit)
+
+		ax.bar(bins[:-1], sum_hist["SUM"], width=BIN_SIZE, align="edge" )
+		ax.set_ylabel("Sum of the Number of Bases")
+		ax.yaxis.set_major_formatter(ticker.FuncFormatter(mb_formatter))
+
+	plt.title(f"{args.sample}")	
+	plt.savefig(args.plot, bbox_inches='tight')
+
