@@ -1,3 +1,5 @@
+#!/bin/env python
+
 import sys
 from pathlib import Path
 from collections import defaultdict
@@ -13,8 +15,8 @@ def main():
         samples_in = [z.strip() for z in f.readlines()]
 
     qstat_cmd = (
-        'for j in $(qstat -u $USER | tail -n +3 | cut -f 2 -d " "); '
-        'do qstat -j $j; done'
+        "for j in $(qstat -u $USER | tail -n +3 | sed 's/^[ ]*//' | cut -f 1 -d ' '); "
+        "do qstat -j $j; done"
     )
     qstat_all_str = str(subprocess.run(
         qstat_cmd, shell=True, check=True, stdout=subprocess.PIPE,
@@ -132,3 +134,4 @@ def parse_qstat_str(qstat_str):
 
 if __name__ == '__main__':
     main()
+

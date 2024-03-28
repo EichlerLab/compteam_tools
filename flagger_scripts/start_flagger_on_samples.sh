@@ -13,7 +13,8 @@
 ######
 
 config_file="$1"
-source $(pwd)/"$config_file"
+. ${HOME}/.bash_profile
+. $(pwd)/"$config_file"
 
 ######
 # Launch end-to-end Flagger job for each sample
