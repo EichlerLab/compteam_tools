@@ -105,7 +105,7 @@ def print_sample_status(sample, cromwell_dirs, qstat_jobs):
     if subjobs:
         print(
             'Subjobs:\n' + '\n'.join([
-                f"{z['job_name']}: Job {z['job_number']}- state {z['job_state']}"
+                f"{z['job_name']}: Job {z['job_number']}- state {z['job_state'] if ('job_state' in z) else 'qw'}"
                 for z in subjobs
             ])
         )
