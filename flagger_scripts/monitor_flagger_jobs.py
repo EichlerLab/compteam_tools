@@ -116,7 +116,7 @@ def print_sample_status(sample, cromwell_dirs, qstat_jobs):
     elif not (end_to_end_jobs or subjobs):
         print('Summary: Failed')
     else:
-        print('Summary: Failed?')
+        print('Summary: Cache retrieval or failed')
     if end_to_end_jobs and not subjobs:
         print('Warning: End-to-end job running but no subjobs running')
     elif subjobs and not end_to_end_jobs:
