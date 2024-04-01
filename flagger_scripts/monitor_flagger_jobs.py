@@ -38,6 +38,15 @@ def main():
         sample = p.stem.replace('_hap1', '').replace('_h1', '')
         if sample in samples_in:
             cromwell_dirs_per_sample[sample].add(cromwell_dir)
+    # Check cached dirs
+    for p in Path('.').glob(
+        'cromwell-executions/FlaggerEndToEnd/*/call-project/'
+        'runProjectBlocksForFlagger/*/call-bam2pafHap1/cacheCopy/execution/glob*/*'
+    ):
+        cromwell_dir = str(p.parts[2])
+        sample = p.stem.replace('_hap1', '').replace('_h1', '')
+        if sample in samples_in:
+            cromwell_dirs_per_sample[sample].add(cromwell_dir)
 
     for sample in samples_in:
         print_sample_status(
