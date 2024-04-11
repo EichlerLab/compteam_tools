@@ -17,30 +17,30 @@ logging.basicConfig(
 )
 
 def get_n50(vals):
-	vals = vals.sort_values(ascending=False)
-	vals_csum = np.cumsum(vals)
-	return vals.iloc[np.sum(vals_csum <= (vals_csum.iloc[-1] // 2))]/1000
+    vals = vals.sort_values(ascending=False)
+    vals_csum = np.cumsum(vals)
+    return vals.iloc[np.sum(vals_csum <= (vals_csum.iloc[-1] // 2))]/1000
 
 
 def gb_formatter(x,pos):
-	return f"{x / 1000000000} Gbp"
+    return f"{x / 1000000000} Gbp"
 
 def mb_formatter(x, pos):
-	return f"{int(x / 1000000)} Mbp"
+    return f"{int(x / 1000000)} Mbp"
 
 def kb_formatter(x, pos):
-	return f"{int(x / 1000)} kbp"
+    return f"{int(x / 1000)} kbp"
 
 def load_sum_hist(len_list=None, bins=None):
-	bin_df = pd.DataFrame({"BIN":bins})
-	bin_df["BIN"] = bin_df.apply(lambda x:x//BIN_SIZE)
-	len_df = pd.DataFrame({"SUM":len_list})
-	len_df["BIN"] = len_df["SUM"].apply(lambda x:x//BIN_SIZE)
-	sum_len_df = len_df.groupby("BIN").sum()
-	sum_hist = pd.merge(bin_df,sum_len_df, on="BIN",how="left").fillna(0)
-	return sum_hist
-	
-	
+    bin_df = pd.DataFrame({"BIN":bins})
+    bin_df["BIN"] = bin_df.apply(lambda x:x//BIN_SIZE)
+    len_df = pd.DataFrame({"SUM":len_list})
+    len_df["BIN"] = len_df["SUM"].apply(lambda x:x//BIN_SIZE)
+    sum_len_df = len_df.groupby("BIN").sum()
+    sum_hist = pd.merge(bin_df,sum_len_df, on="BIN",how="left").fillna(0)
+    return sum_hist
+    
+    
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter) 
 
@@ -64,21 +64,26 @@ args = parser.parse_args()
 
 
 if args.sample and not args.fofn:
-	seq_search = args.seq_type.split('|')
-	# seaches along path
-	file_list = [ list(glob.iglob(f'/net/eichler/vol28/projects/long_read_archive/nobackups/{args.cohort}/{args.sample}/raw_data/nanopore/{search}/**/*fastq_pass.fastq.gz.fai', recursive=True)) for search in seq_search ]
-	# flattens list
-	file_list = [ file for sublist in file_list for file in sublist ]
-	if args.model:
-		file_list = [ file for file in file_list if args.model in file ]
-	if args.version:
-		file_list = [ file for file in file_list if args.version in file ]
-	if args.runid:
-		file_list = [ file for file in file_list if args.runid in file ]
-	df = pd.concat([pd.read_csv(file, sep='\t', header=None, usecols=[0,1]) for file in file_list])
+    seq_search = args.seq_type.split('|')
+    # seaches along path
+    file_list = [ list(glob.iglob(f'/net/eichler/vol28/projects/long_read_archive/nobackups/{args.cohort}/{args.sample}/raw_data/nanopore/{search}/**/*fastq_pass.fastq.gz.fai', recursive=True)) for search in seq_search ]
+    # flattens list
+    file_list = [ file for sublist in file_list for file in sublist ]
+    if args.model:
+        file_list = [ file for file in file_list if args.model in file ]
+    if args.version:
+        file_list = [ file for file in file_list if args.version in file ]
+    if args.runid:
+        file_list = [ file for file in file_list if args.runid in file ]
+    df = pd.concat([pd.read_csv(file, sep='\t', header=None, usecols=[0,1]) for file in file_list])
 else:
-	fofn_df = pd.read_csv(args.fofn, sep='\t', header=None, index_col=0)
-	df = pd.concat([pd.read_csv(file+'.fai', sep='\t', header=None, usecols=[0,1]) for file in fofn_df.index])
+    # available for a single fastq as input instead of fofn.
+    if args.fofn.endswith(".fastq.gz"):
+        df = pd.read_csv(args.fofn+".fai", sep='\t', header=None, usecols=[0,1])
+    else:
+        fofn_df = pd.read_csv(args.fofn, sep='\t', header=None, index_col=0)
+        df = pd.concat([pd.read_csv(file+'.fai', sep='\t', header=None, usecols=[0,1]) for file in fofn_df.index])
+    
 
 len_list = pd.Series(df[1].copy())
 
@@ -92,59 +97,59 @@ coverage_k = np.sum(len_list_k)/(args.genome*1000000000)
 
 
 if not args.tab:
-	with open(args.outfile, 'w') as outFile:
-			outFile.write(
-			'Coverage (X): {:,.3f}\n'
-			'Coverage 100k+ (X): {:,.3f}\n'
-			'Reads:     {:,d}\n'
-			'N50 (kbp):   {:,.2f}\n'.format(
-			coverage,
-			coverage_k,
-			len(len_list),
-			get_n50(len_list),
-		)
-	)
+    with open(args.outfile, 'w') as outFile:
+            outFile.write(
+            'Coverage (X): {:,.3f}\n'
+            'Coverage 100k+ (X): {:,.3f}\n'
+            'Reads:     {:,d}\n'
+            'N50 (kbp):   {:,.2f}\n'.format(
+            coverage,
+            coverage_k,
+            len(len_list),
+            get_n50(len_list),
+        )
+    )
 else:
-	out_df = pd.DataFrame.from_dict({'SAMPLE' : [args.sample], 'COVERAGE' : [coverage], 'COVERAGE_100' : [coverage_k], 'READS' : [len(len_list)], 'N50_K' : [get_n50(len_list)]})
-	out_df.to_csv(args.outfile, sep='\t', index=False)
+    out_df = pd.DataFrame.from_dict({'SAMPLE' : [args.sample], 'COVERAGE' : [coverage], 'COVERAGE_100' : [coverage_k], 'READS' : [len(len_list)], 'N50_K' : [get_n50(len_list)]})
+    out_df.to_csv(args.outfile, sep='\t', index=False)
 
 if args.plot:
-	BIN_SIZE = args.window
-	if not args.plot.endswith("png"):
-		logging.error("-p/--plot must end with png")
-		sys.exit(1)
-	fig, ax = plt.subplots()
-	
-	if args.log:
-		ax.set_xscale('log')
-		ax.set_xlabel("Read Length (log)")
-	else:
-		ax.set_xlabel("Read Length")
+    BIN_SIZE = args.window
+    if not args.plot.endswith("png"):
+        logging.error("-p/--plot must end with png")
+        sys.exit(1)
+    fig, ax = plt.subplots()
+    
+    if args.log:
+        ax.set_xscale('log')
+        ax.set_xlabel("Read Length (log)")
+    else:
+        ax.set_xlabel("Read Length")
 
-	bins = np.arange(0, max(len_list) + BIN_SIZE, BIN_SIZE)
-	sum_hist = load_sum_hist(len_list = len_list, bins = bins)[:-1]
+    bins = np.arange(0, max(len_list) + BIN_SIZE, BIN_SIZE)
+    sum_hist = load_sum_hist(len_list = len_list, bins = bins)[:-1]
 
-	ax.xaxis.set_major_formatter(ticker.FuncFormatter(kb_formatter))
+    ax.xaxis.set_major_formatter(ticker.FuncFormatter(kb_formatter))
 
-	if args.cumulative:
-		if args.length_limit:
-			ax.set_xlim(args.length_limit,0)
-		else:
-			ax.set_xlim(max(bins),0)
-		
-		
-		cumulative_hist = np.cumsum(sum_hist[::-1])[::-1]
-		ax.bar(bins[:-1], cumulative_hist["SUM"], width=BIN_SIZE, align="edge" )
-		ax.set_ylabel("Cumulative Sum of the Number of Bases")
-		ax.yaxis.set_major_formatter(ticker.FuncFormatter(gb_formatter))
-	else:
-		if args.length_limit:
-			ax.set_xlim(0,args.length_limit)
+    if args.cumulative:
+        if args.length_limit:
+            ax.set_xlim(args.length_limit,0)
+        else:
+            ax.set_xlim(max(bins),0)
+        
+        
+        cumulative_hist = np.cumsum(sum_hist[::-1])[::-1]
+        ax.bar(bins[:-1], cumulative_hist["SUM"], width=BIN_SIZE, align="edge" )
+        ax.set_ylabel("Cumulative Sum of the Number of Bases")
+        ax.yaxis.set_major_formatter(ticker.FuncFormatter(gb_formatter))
+    else:
+        if args.length_limit:
+            ax.set_xlim(0,args.length_limit)
 
-		ax.bar(bins[:-1], sum_hist["SUM"], width=BIN_SIZE, align="edge" )
-		ax.set_ylabel("Sum of the Number of Bases")
-		ax.yaxis.set_major_formatter(ticker.FuncFormatter(mb_formatter))
+        ax.bar(bins[:-1], sum_hist["SUM"], width=BIN_SIZE, align="edge" )
+        ax.set_ylabel("Sum of the Number of Bases")
+        ax.yaxis.set_major_formatter(ticker.FuncFormatter(mb_formatter))
 
-	plt.title(f"{args.sample}")	
-	plt.savefig(args.plot, bbox_inches='tight')
+    plt.title(f"{args.sample}")    
+    plt.savefig(args.plot, bbox_inches='tight')
 
