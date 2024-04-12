@@ -15,6 +15,8 @@ WINDOW_SHAPE = '▉'
 WINDOW_COLORS = {
     'CYP2D6':'gold',
     'CYP2D7':'dodgerblue',
+    'REP':'pink',
+    'Spacer': 'tan',
     'Both':'green',
     'Neither':'lightgray',
     'Past_end':'ghostwhite'
@@ -72,6 +74,10 @@ for sample_hap in renamed_haps_ordered:
                     color_key = 'CYP2D6'
                 elif 'CYP2D7' in best_mapping_genes:
                     color_key = 'CYP2D7'
+                elif 'REP6' in best_mapping_genes:
+                    color_key = 'REP'
+                elif 'Spacer' in best_mapping_genes:
+                    color_key = 'Spacer'
                 else:
                     color_key = 'Neither'
             else:
@@ -103,7 +109,7 @@ with tag('html'):
             with tag('tbody'):
                 for out_line in out_lines:
                     with tag('tr'):
-                        with tag('td'):
+                        with tag('td', style='white-space: nowrap;'):
                             doc.asis(f'{out_line[0]}')
                         with tag('td'):
                             doc.asis(str(out_line[1]))
@@ -121,3 +127,4 @@ with tag('html'):
 
     with open(out_fname, 'w') as out_f:
         out_f.write(doc.getvalue())
+
