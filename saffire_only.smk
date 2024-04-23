@@ -16,7 +16,7 @@ MINIMAP_PARAMS = config.get(
 )
 MANIFEST = config.get("MANIFEST", "config/manifest.tab")
 SV_SIZE = config.get("SV_SIZE", "30000")
-REF = config.get("REF")
+REF_DICT = config.get("REF")
 
 manifest_df = pd.read_csv(MANIFEST, sep="\t", index_col=["SAMPLE"])
 
@@ -27,9 +27,11 @@ def find_fasta(wildcards):
 
 def find_contigs(wildcards):
     return gather.split(
-        "tmp/{sample}.{scatteritem}-broken.paf", sample=wildcards.sample
-    )
+        "tmp/{ref}/{sample}.{scatteritem}-broken.paf", sample=wildcards.sample, ref=wildcards.ref
+        )
 
+def find_ref(wildcards):
+    return REF_DICT[wildcards.ref]
 
 scattergather:
     split=PARTS,
@@ -45,30 +47,30 @@ localrules:
 
 rule all:
     input:
-        expand("results/saffire/{sample}/{sample}.saf", sample=manifest_df.index),
+        expand("results/saffire/{ref}/{sample}/{sample}.saf", sample=manifest_df.index, ref=REF_DICT),
 
 
 rule gather_bam:
     input:
-        expand("results/{sample}.bam", sample=manifest_df.index),
+        expand("results/{ref}/{sample}.bam", sample=manifest_df.index, ref=REF_DICT),
 
 
 rule gather_bed:
     input:
-        expand("results/{sample}.bed", sample=manifest_df.index),
+        expand("results/{ref}/{sample}.bed", sample=manifest_df.index, ref=REF_DICT),
 
 
 rule gather_paf:
     input:
-        expand("results/{sample}.paf", sample=manifest_df.index),
+        expand("results/{ref}/{sample}.paf", sample=manifest_df.index, ref=REF_DICT),
 
 
 rule make_paf:
     input:
         fa=find_fasta,
-        ref=REF,
+        ref=find_ref,
     output:
-        paf="results/{sample}.paf",
+        paf="results/{ref}/{sample}.paf",
     threads: 8
     envmodules:
         "modules",
@@ -90,9 +92,9 @@ rule make_paf:
 rule make_sam:
     input:
         fa=find_fasta,
-        ref=REF,
+        ref=find_ref,
     output:
-        paf="results/{sample}.bam",
+        paf="results/{ref}/{sample}.bam",
     threads: 8
     envmodules:
         "modules",
@@ -116,7 +118,7 @@ rule make_bed:
     input:
         bam=rules.make_sam.output.paf,
     output:
-        bed="results/{sample}.bed",
+        bed="results/{ref}/{sample}.bed",
     threads: 1
     envmodules:
         "modules",
@@ -138,8 +140,8 @@ rule split_paf:
     input:
         paf=rules.make_paf.output.paf,
     output:
-        flag=temp(scatter.split("tmp/{{sample}}.{scatteritem}.paf")),
-        temp_paf=temp("tmp/{sample}_uniform.paf"),
+        flag=temp(scatter.split("tmp/{{ref}}/{{sample}}.{scatteritem}.paf")),
+        temp_paf=temp("tmp/{ref}/{sample}_uniform.paf"),
     threads: 1
     resources:
         mem=8,
@@ -172,7 +174,7 @@ rule split_paf:
         for i, contig in enumerate(df[0].unique()):
             out_num = (i % PARTS) + 1
             df.loc[df[0] == contig][col_out].to_csv(
-                f"tmp/{wildcards.sample}.{out_num}-of-{PARTS}.paf",
+                os.path.join(os.path.dirname(output.flag[0]), f"{wildcards.sample}.{out_num}-of-{PARTS}.paf"),
                 sep="\t",
                 index=False,
                 header=False,
@@ -182,10 +184,10 @@ rule split_paf:
 
 rule trim_break_orient_paf:
     input:
-        paf="tmp/{sample}.{scatteritem}.paf",
+        paf="tmp/{ref}/{sample}.{scatteritem}.paf",
     output:
-        contig=temp("tmp/{sample}.{scatteritem}-orient.paf"),
-        broken=temp("tmp/{sample}.{scatteritem}-broken.paf"),
+        contig=temp("tmp/{ref}/{sample}.{scatteritem}-orient.paf"),
+        broken=temp("tmp/{ref}/{sample}.{scatteritem}-broken.paf"),
     threads: 1
     envmodules:
         "modules",
@@ -208,7 +210,7 @@ rule combine_paf:
         paf=find_contigs,
         flag=rules.split_paf.output.flag,
     output:
-        paf="tmp/{sample}-broken.paf",
+        paf="tmp/{ref}/{sample}-broken.paf",
     threads: 1
     envmodules:
         "modules",
@@ -229,7 +231,7 @@ rule saff_out:
     input:
         paf=rules.combine_paf.output.paf,
     output:
-        saf="results/saffire/{sample}/{sample}.saf",
+        saf="results/saffire/{ref}/{sample}/{sample}.saf",
     threads: 1
     envmodules:
         "modules",
