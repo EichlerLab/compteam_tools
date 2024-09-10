@@ -72,12 +72,8 @@ rule make_paf:
     output:
         paf="results/{ref}/{sample}.paf",
     threads: 8
-    envmodules:
-        "modules",
-        "modules-init",
-        "modules-gs/prod",
-        "modules-eichler/prod",
-        "minimap2/2.24",
+    singularity:
+        "docker://eichlerlab/align-basics:0.1"
     resources:
         mem=12,
         hrs=72,
@@ -85,7 +81,7 @@ rule make_paf:
         minimap=MINIMAP_PARAMS,
     shell:
         """
-        minimap2 -c -t {threads} -K {resources.mem}G --eqx --cs {params.minimap} --secondary=no --eqx -Y {input.ref} {input.fa} > {output.paf}
+        minimap2 -c -t {threads} -L -K {resources.mem}G --eqx --cs {params.minimap} --secondary=no --eqx -Y {input.ref} {input.fa} > {output.paf}
         """
 
 
@@ -103,14 +99,16 @@ rule make_sam:
         "modules-eichler/prod",
         "minimap2/2.24",
         "samtools/1.12",
+    singularity:
+        "docker://eichlerlab/align-basics:0.1"
     resources:
-        mem=60,
+        mem=16,
         hrs=120,
     params:
         minimap=MINIMAP_PARAMS,
     shell:
         """
-        minimap2 -c -t {threads} -K {resources.mem}G --cs -a {params.minimap} --MD --secondary=no --eqx -Y {input.ref} {input.fa} | samtools view -S -b /dev/stdin | samtools sort -@ {threads} /dev/stdin > {output.paf}
+        minimap2 -c -t {threads} -L -K {resources.mem}G --cs -a {params.minimap} --MD --secondary=no --eqx -Y {input.ref} {input.fa} | samtools view -S -b /dev/stdin | samtools sort -@ {threads} /dev/stdin > {output.paf}
         """
 
 
@@ -127,6 +125,8 @@ rule make_bed:
         "modules-eichler/prod",
         "minimap2/2.24",
         "bedtools/2.29.0",
+    singularity:
+        "docker://eichlerlab/align-basics:0.1"
     resources:
         mem=12,
         hrs=72,
@@ -189,12 +189,8 @@ rule trim_break_orient_paf:
         contig=temp("tmp/{ref}/{sample}.{scatteritem}-orient.paf"),
         broken=temp("tmp/{ref}/{sample}.{scatteritem}-broken.paf"),
     threads: 1
-    envmodules:
-        "modules",
-        "modules-init",
-        "modules-gs/prod",
-        "modules-eichler/prod",
-        "rustybam/0.1.27",
+    singularity:
+        "docker://eichlerlab/rustybam:0.1.33"
     resources:
         mem=24,
         hrs=24,
@@ -212,12 +208,6 @@ rule combine_paf:
     output:
         paf="tmp/{ref}/{sample}-broken.paf",
     threads: 1
-    envmodules:
-        "modules",
-        "modules-init",
-        "modules-gs/prod",
-        "modules-eichler/prod",
-        "rustybam/0.1.27",
     resources:
         mem=4,
         hrs=24,
@@ -233,12 +223,8 @@ rule saff_out:
     output:
         saf="results/saffire/{ref}/{sample}/{sample}.saf",
     threads: 1
-    envmodules:
-        "modules",
-        "modules-init",
-        "modules-gs/prod",
-        "modules-eichler/prod",
-        "rustybam/0.1.27",
+    singularity:
+        "docker://eichlerlab/rustybam:0.1.33"
     resources:
         mem=8,
         hrs=24,

@@ -77,9 +77,11 @@ if args.sample and not args.fofn:
         file_list = [ file for file in file_list if args.runid in file ]
     df = pd.concat([pd.read_csv(file, sep='\t', header=None, usecols=[0,1]) for file in file_list])
 else:
-    # available for a single fastq as input instead of fofn.
-    if args.fofn.endswith(".fastq.gz"):
+    # available for a single fastq or fai as input instead of fofn.
+    if args.fofn.endswith("fastq.gz") or args.fofn.endswith("fa.gz") or args.fofn.endswith("fasta.gz"):
         df = pd.read_csv(args.fofn+".fai", sep='\t', header=None, usecols=[0,1])
+    elif args.fofn.endswith(".fai"):
+        df = pd.read_csv(args.fofn, sep='\t', header=None, usecols=[0,1])
     else:
         fofn_df = pd.read_csv(args.fofn, sep='\t', header=None, index_col=0)
         df = pd.concat([pd.read_csv(file+'.fai', sep='\t', header=None, usecols=[0,1]) for file in fofn_df.index])
