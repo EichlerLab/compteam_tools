@@ -1,0 +1,9 @@
+{
+  "FlaggerEndToEndNoVariantCallingNoRef.sampleName": "insert_sample_here",
+  "FlaggerEndToEndNoVariantCallingNoRef.fai": "/net/eichler/vol26/projects/flagger_tmp/nobackups/nhp_t2t/insert_sample_here/asm/both_haps.fasta.gz.fai",
+  "FlaggerEndToEndNoVariantCallingNoRef.maxReadDivergence": 0.02,
+  "FlaggerEndToEndNoVariantCallingNoRef.secphaseOptions": "--hifi",
+  "FlaggerEndToEndNoVariantCallingNoRef.assemblyFastaGz": "/net/eichler/vol26/projects/flagger_tmp/nobackups/nhp_t2t/insert_sample_here/asm/both_haps.fasta.gz",
+  "FlaggerEndToEndNoVariantCallingNoRef.suffix": "",
+  "FlaggerEndToEndNoVariantCallingNoRef.readAlignmentBam": "/net/eichler/vol26/projects/flagger_tmp/nobackups/nhp_t2t/insert_sample_here/alignments/HiFi/winnowmap/all_HiFi.bam"
+}
