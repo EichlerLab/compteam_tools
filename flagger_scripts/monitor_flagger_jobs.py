@@ -30,23 +30,20 @@ def main():
     qstat_jobs = [z for z in qstat_jobs if z]
 
     cromwell_dirs_per_sample = defaultdict(set)
-    for p in Path('.').glob(
-        'cromwell-executions/FlaggerEndToEnd/*/call-project/'
-        'runProjectBlocksForFlagger/*/call-bam2pafHap1/inputs/*/*'
-    ):
-        cromwell_dir = str(p.parts[2])
-        sample = p.stem.replace('_hap1', '').replace('_h1', '')
-        if sample in samples_in:
+    for sample in samples_in:
+        for p in Path('.').rglob(f'cromwell-executions/*FlaggerEndToEnd*/**/*{sample}*'):
+            cromwell_dir = str(p.parts[2])
             cromwell_dirs_per_sample[sample].add(cromwell_dir)
+
     # Check cached dirs
-    for p in Path('.').glob(
-        'cromwell-executions/FlaggerEndToEnd/*/call-project/'
+    '''for p in Path('.').glob(
+        'cromwell-executions/*FlaggerEndToEnd*/*/call-project/'
         'runProjectBlocksForFlagger/*/call-bam2pafHap1/cacheCopy/execution/glob*/*'
     ):
         cromwell_dir = str(p.parts[2])
         sample = p.stem.replace('_hap1', '').replace('_h1', '')
         if sample in samples_in:
-            cromwell_dirs_per_sample[sample].add(cromwell_dir)
+            cromwell_dirs_per_sample[sample].add(cromwell_dir)'''
 
     for sample in samples_in:
         print_sample_status(
@@ -81,10 +78,13 @@ def print_sample_status(sample, cromwell_dirs, qstat_jobs):
     # Process cromwell-executions dirs
     final_output_files = []
     for cromwell_dir in cromwell_dirs:
-        for final_output_file in (
-            'cromwell-executions/FlaggerEndToEnd'/Path(cromwell_dir)
-        ).glob(f'**/output/{sample}*.alt_removed.flagger_final.bed'):
+        for final_output_file in list(Path('.').rglob(
+            f'*FlaggerEndToEnd*/{cromwell_dir}/**/output/*final.bed'
+        )) + list(Path('.').rglob(
+            f'*FlaggerEndToEnd*/{cromwell_dir}/**/output/*flagger.no_Hap.bed'
+        )):
             final_output_files.append(str(final_output_file))
+        print(final_output_files)
         subjobs += [
             z for z in qstat_jobs if (
                 (cromwell_dir in z['stdout_path_list']) or 
