@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import logging
 import sys
+import os
 
 
 logging.basicConfig(
@@ -40,7 +41,16 @@ def load_sum_hist(len_list=None, bins=None):
     sum_hist = pd.merge(bin_df,sum_len_df, on="BIN",how="left").fillna(0)
     return sum_hist
     
-    
+def get_run_ids_dict(file_list):
+    run_ids_dict = {}
+    for file_name in file_list[0]:
+        file_name_token = file_name.split("/")
+        run_id, basecaller, version = file_name_token[13:16]
+        basecall_info = f"{basecaller}-{version}"
+        run_ids_dict.setdefault(run_id, [])
+        run_ids_dict[run_id].append(basecall_info)
+    return run_ids_dict
+
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter) 
 
@@ -60,13 +70,25 @@ parser.add_argument('--length_limit', '-x', type=int, required=False, help='Limi
 parser.add_argument('--cumulative', '-u', required=False, action='store_true', default=False, help='Plot the cumulative sum of base pairs by read length')
 parser.add_argument('--window', '-w', required=False, type=int, default=10000, help='Read length window size for plotting bins')
 
+
+if len(sys.argv) == 1:
+    parser.print_help(sys.stderr)
+    sys.exit(1)
+
 args = parser.parse_args()
 
-
-if args.sample and not args.fofn:
+if args.sample and args.fofn==None:
     seq_search = args.seq_type.split('|')
+
     # seaches along path
-    file_list = [ list(glob.iglob(f'/net/eichler/vol28/projects/long_read_archive/nobackups/{args.cohort}/{args.sample}/raw_data/nanopore/{search}/**/*fastq_pass.fastq.gz.fai', recursive=True)) for search in seq_search ]
+#    file_list = [ list(glob.iglob(f'/net/eichler/vol28/projects/long_read_archive/nobackups/{args.cohort}/{args.sample}/raw_data/nanopore/{search}/**/*fastq_pass.fastq.gz.fai', recursive=True)) for search in seq_search ]
+    raw_file_list = [ list(glob.iglob(f'/net/eichler/vol28/projects/long_read_archive/nobackups/{args.cohort}/{args.sample}/raw_data/nanopore/{search}/**/*fastq.gz.fai', recursive=True)) for search in seq_search ]
+    file_list = [[ file for file in raw_file_list[0] if not "fail" in file ]]
+    run_ids_dict = get_run_ids_dict(file_list)
+    for run_id in run_ids_dict:
+        if len(run_ids_dict[run_id]) > 1:
+            basecall_info = ", ".join(run_ids_dict[run_id])
+            print (f"#WARNING: Run ID {run_id} has duplicates: {basecall_info}")
     # flattens list
     file_list = [ file for sublist in file_list for file in sublist ]
     if args.model:
@@ -75,17 +97,27 @@ if args.sample and not args.fofn:
         file_list = [ file for file in file_list if args.version in file ]
     if args.runid:
         file_list = [ file for file in file_list if args.runid in file ]
+    if len(file_list) == 0:
+        sys.stderr.write(f"\n##ERROR: No FASTQ was found in {args.sample}:{args.seq_type} in {args.cohort} cohort.\n")
+        sys.exit(1)
     df = pd.concat([pd.read_csv(file, sep='\t', header=None, usecols=[0,1]) for file in file_list])
 else:
-    # available for a single fastq or fai as input instead of fofn.
-    if args.fofn.endswith("fastq.gz") or args.fofn.endswith("fa.gz") or args.fofn.endswith("fasta.gz"):
-        df = pd.read_csv(args.fofn+".fai", sep='\t', header=None, usecols=[0,1])
-    elif args.fofn.endswith(".fai"):
-        df = pd.read_csv(args.fofn, sep='\t', header=None, usecols=[0,1])
+    if not args.fofn==None:
+        if not os.path.isfile(args.fofn):
+            sys.stderr.write(f"##ERROR: File Not Found: {args.fofn}\n")
+            sys.exit(1)
+        # available for a single fastq or fai as input instead of fofn.
+        if args.fofn.endswith("fastq.gz") or args.fofn.endswith("fa.gz") or args.fofn.endswith("fasta.gz"):
+            df = pd.read_csv(args.fofn+".fai", sep='\t', header=None, usecols=[0,1])
+        elif args.fofn.endswith(".fai"):
+            df = pd.read_csv(args.fofn, sep='\t', header=None, usecols=[0,1])
+        else:
+            fofn_df = pd.read_csv(args.fofn, sep='\t', header=None, index_col=0)
+            df = pd.concat([pd.read_csv(file+'.fai', sep='\t', header=None, usecols=[0,1]) for file in fofn_df.index])
     else:
-        fofn_df = pd.read_csv(args.fofn, sep='\t', header=None, index_col=0)
-        df = pd.concat([pd.read_csv(file+'.fai', sep='\t', header=None, usecols=[0,1]) for file in fofn_df.index])
-    
+        fofn_file=str(args.fofn)
+        sys.stderr.write(f"##ERROR: Neither the Sample nor the FOFN has been specified.")
+        sys.exit(1)
 
 len_list = pd.Series(df[1].copy())
 
