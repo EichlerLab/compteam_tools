@@ -13,7 +13,7 @@ for j in $(ls cromwell-executions/*FlaggerEndToEnd*); do
     nohap_outpath=$(find cromwell-executions/*FlaggerEndToEnd*/"$j" -path '*/output/*flagger.no_Hap.bed' 2>/dev/null)
     full_outpath=$(find cromwell-executions/*FlaggerEndToEnd*/"$j" -path '*/output/*prediction.bed' 2>/dev/null)
     if [ -f "$nohap_outpath" ] && [ -f "$full_outpath" ]; then
-        mv "$full_outpath" final_beds/$(basename "$nohap_outpath")
+        mv "$full_outpath" final_beds/$(basename "$nohap_outpath" | sed 's/.no_Hap//')
         found_outfile=true
         found_any_outfile=true
     fi
