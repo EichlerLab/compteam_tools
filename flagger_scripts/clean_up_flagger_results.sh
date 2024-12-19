@@ -10,8 +10,8 @@ found_any_outfile=false
 for j in $(ls cromwell-executions/*FlaggerEndToEnd*); do
     found_outfile=false
     # nohap outpath has the correct sample name in it, but prediction bed is desired output with all blocks including Hap- use this and rename
-    nohap_outpath=$(find cromwell-executions/*FlaggerEndToEnd*/"$j" -path '*/output/*flagger.no_Hap.bed')
-    full_outpath=$(find cromwell-executions/*FlaggerEndToEnd*/"$j" -path '*/output/*prediction.bed')
+    nohap_outpath=$(find cromwell-executions/*FlaggerEndToEnd*/"$j" -path '*/output/*flagger.no_Hap.bed' 2>/dev/null)
+    full_outpath=$(find cromwell-executions/*FlaggerEndToEnd*/"$j" -path '*/output/*prediction.bed' 2>/dev/null)
     if [ -f "$nohap_outpath" ] && [ -f "$full_outpath" ]; then
         mv "$full_outpath" final_beds/$(basename "$nohap_outpath")
         found_outfile=true
