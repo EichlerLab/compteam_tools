@@ -144,7 +144,7 @@ if not args.tab:
         )
     )
 else:
-    out_df = pd.DataFrame.from_dict({'SAMPLE' : [args.sample], 'COVERAGE' : [coverage], 'COVERAGE_100' : [coverage_k], 'READS' : [len(len_list)], 'N50_K' : [get_n50(len_list)]})
+    out_df = pd.DataFrame.from_dict({'SAMPLE' : [args.sample], 'COVERAGE' : [round(coverage,3)], 'COVERAGE_100' : [round(coverage_k,3)], 'READS' : [len(len_list)], 'N50_K' : [get_n50(len_list)]})
     out_df.to_csv(args.outfile, sep='\t', index=False)
 
 if args.plot:

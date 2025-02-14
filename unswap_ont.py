@@ -67,6 +67,7 @@ for index in df.index:
             for file_check in [search_file, search_file_pod]:
                 if os.path.isfile(os.path.join(search_base, folder_check, file_check)):
                     new_file = os.path.join(search_base, folder_check, file_check)
+                    print (new_file)
                     if new_file in df['DEST_PATH'].values:
                         continue
                     logging.debug(f"Getting info for NEW_FILE: {new_file}")
@@ -103,15 +104,20 @@ if args.cohort:
 else:
     new_prefix = args.sample_new
 
-old_sample = args.input.split("/")[0]
+
+old_sample = args.input.replace(f"/net/eichler/vol28/projects/long_read_archive/nobackups/{args.cohort}/","").split("/")[0]
 
 
-df['COPY_PATH'] = df["DEST_PATH"].apply(lambda val : os.path.join(new_prefix, "/".join(val.split("/")[1:])))
-df['NEW_PATH'] = df["DEST_PATH"].apply(lambda val : os.path.join(args.sample_new, "/".join(val.split("/")[1:])))
+
+df['COPY_PATH'] = df["DEST_PATH"].apply(lambda val : os.path.join(new_prefix, "/".join(val.split("/")[1:]).replace(f"net/eichler/vol28/projects/long_read_archive/nobackups/{args.cohort}/{old_sample}/","")))
+df['NEW_PATH'] = df["DEST_PATH"].apply(lambda val : os.path.join(args.sample_new, "/".join(val.split("/")[1:]).replace(f"net/eichler/vol28/projects/long_read_archive/nobackups/{args.cohort}/{old_sample}/","")))
+
+
 
 if len(fastq_files) > 0:
     fastq_files['COPY_PATH'] = fastq_files["DEST_PATH"].apply(lambda val : os.path.join(new_prefix, "/".join(val.split("/")[1:])).replace(old_sample, args.sample_new))
     fastq_files['NEW_PATH'] = fastq_files["DEST_PATH"].apply(lambda val : os.path.join(args.sample_new, "/".join(val.split("/")[1:])).replace(old_sample, args.sample_new))
+
 
 logging.info("Linking files")
 migrated_files = [args.input]

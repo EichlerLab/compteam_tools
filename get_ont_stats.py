@@ -115,14 +115,14 @@ class CalculateStats:
 
 
 class FindONT:
-    regex = r'(?P<common_dir>.*nanopore)/(?P<library>[A-Z]{2,5})/fastq/(?P<run_id>.+)/(?P<basecaller>.+)/(?P<version>\d+.\d+.\d+)/(?P<model>.+)/(?P<filename>.*_fastq_pass.fastq.gz)'
+    regex = r'(?P<common_dir>.*nanopore)/(?P<library>[A-Z]{2,5})/fastq/(?P<run_id>.+)/(?P<basecaller>.+)/(?P<version>\d+.\d+.\d+)/(?P<model>.+)/(?P<filename>.*_pass.fastq.gz)'
 
     def __init__(self, prefix, sample, cohort):
         self.prefix = prefix
         self.sample = sample
         self.cohort = cohort
         self.glob_list = glob.glob(
-            f"{os.path.join(prefix, cohort, sample)}/raw_data/nanopore/*/fastq/*/*/*/*/*_fastq_pass.fastq.gz")
+            f"{os.path.join(prefix, cohort, sample)}/raw_data/nanopore/*/fastq/*/*/*/*/*_pass.fastq.gz")
         self.df = pd.DataFrame(data=self.glob_list, columns=["filepath"])
 
     @property
