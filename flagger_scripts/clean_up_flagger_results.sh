@@ -38,7 +38,7 @@ for j in $(ls cromwell-executions/*FlaggerEndToEnd*); do
         fi 
 
         echo Removing task directory cromwell-executions/*FlaggerEndToEnd*/"$j"
-        #rm -rf cromwell-executions/*FlaggerEndToEnd*/"$j"
+        rm -rf cromwell-executions/*FlaggerEndToEnd*/"$j"
         echo
     else
         echo Skipping "$j"- Missing final bed
