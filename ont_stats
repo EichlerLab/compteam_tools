@@ -20,7 +20,10 @@ logging.basicConfig(
 def get_n50(vals):
     vals = vals.sort_values(ascending=False)
     vals_csum = np.cumsum(vals)
-    return vals.iloc[np.sum(vals_csum <= (vals_csum.iloc[-1] // 2))]/1000
+    return vals.iloc[np.sum(vals_csum <= (vals_csum.iloc[-1] // 2))]
+
+def get_aun(vals):
+    return np.sum(vals*vals)/np.sum(vals)
 
 
 def gb_formatter(x,pos):
@@ -140,11 +143,11 @@ if not args.tab:
             coverage,
             coverage_k,
             len(len_list),
-            get_n50(len_list),
+            get_n50(len_list)/1000,
         )
     )
 else:
-    out_df = pd.DataFrame.from_dict({'SAMPLE' : [args.sample], 'COVERAGE' : [round(coverage,3)], 'COVERAGE_100' : [round(coverage_k,3)], 'READS' : [len(len_list)], 'N50_K' : [get_n50(len_list)]})
+    out_df = pd.DataFrame.from_dict({'SAMPLE' : [args.sample], 'COVERAGE' : [round(coverage,3)], 'COVERAGE_100' : [round(coverage_k,3)], 'READS' : [len(len_list)], 'N50_K' : [get_n50(len_list)/1000]})
     out_df.to_csv(args.outfile, sep='\t', index=False)
 
 if args.plot:

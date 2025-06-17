@@ -105,7 +105,7 @@ else:
     new_prefix = args.sample_new
 
 
-old_sample = args.input.replace(f"/net/eichler/vol28/projects/long_read_archive/nobackups/{args.cohort}/","").split("/")[0]
+old_sample = args.input.split("/")[0]
 
 
 
