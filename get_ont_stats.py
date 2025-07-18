@@ -121,8 +121,9 @@ class FindONT:
         self.prefix = prefix
         self.sample = sample
         self.cohort = cohort
-        self.glob_list = glob.glob(
+        glob_list_tmp = glob.glob(
             f"{os.path.join(prefix, cohort, sample)}/raw_data/nanopore/*/fastq/*/*/*/*/*_pass.fastq.gz")
+        self.glob_list = [ fastq for fastq in glob_list_tmp if not "HERRO" in fastq ]
         self.df = pd.DataFrame(data=self.glob_list, columns=["filepath"])
 
     @property
