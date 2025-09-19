@@ -67,7 +67,7 @@ parser.add_argument('--outfile', '-o', type=str, required=False, help='Output fi
 parser.add_argument('--model', '-m', type=str, required=False, help='Basecalling model to calculate coverage for')
 parser.add_argument('--version', '-v', type=str, required=False, help='Basecaller version to calculate coverage for')
 parser.add_argument('--tab', '-t', required=False, action='store_true', help='Output information in a tab-delimited format')
-parser.add_argument('--plot', '-p', type=str, required=False, help='Plot the read length distribution and save to the provided argument')
+parser.add_argument('--plot', '-p', type=str, required=False, help='Plot read length histogram showing summed bases per bin.')
 parser.add_argument('--log', '-l', required=False, action='store_true', default=False, help='Plot the read length distribution on a log scale')
 parser.add_argument('--length_limit', '-x', type=int, required=False, help='Limit of the read length to be displayed on the plot')
 parser.add_argument('--cumulative', '-u', required=False, action='store_true', default=False, help='Plot the cumulative sum of base pairs by read length')
