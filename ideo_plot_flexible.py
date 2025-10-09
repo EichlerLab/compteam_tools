@@ -236,18 +236,6 @@ def chromosome_collections(df, y_positions, height, ptype, pname, *, split=False
                 else:
                     hatch_coords = [start_hatch, starts[i][0] - start_hatch]
 
-
-                    # if split:
-                    #     # split: both asm1 and asm2 above the ideogram
-                    #     y0 = y_positions[chrom] + (height * (0)**(local_vert_for_offset)) + 0.2
-                    # else:
-                    #     # non-split: asm1 above, asm2 below
-                    #     if pname == 'asm1':
-                    #         y0 = y_positions[chrom] + (height * (0)**(local_vert_for_offset)) + 0.2
-                    #     else:
-                    #         y0 = y_positions[chrom] + (height * (0)**(local_vert_for_offset)) - (gene_height*2 + chrom_height + gene_padding*2) - 0.2
-
-
                     if pname == 'asm1': # always upper
                         y0 = y_positions[chrom] + (height * (0)**(local_vert_for_offset)) + 0.2
                     else: # asm2

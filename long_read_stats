@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import logging
 import sys
-import os
 
 
 logging.basicConfig(
@@ -20,10 +19,7 @@ logging.basicConfig(
 def get_n50(vals):
     vals = vals.sort_values(ascending=False)
     vals_csum = np.cumsum(vals)
-    return vals.iloc[np.sum(vals_csum <= (vals_csum.iloc[-1] // 2))]
-
-def get_aun(vals):
-    return np.sum(vals*vals)/np.sum(vals)
+    return vals.iloc[np.sum(vals_csum <= (vals_csum.iloc[-1] // 2))]/1000
 
 
 def gb_formatter(x,pos):
@@ -44,16 +40,7 @@ def load_sum_hist(len_list=None, bins=None):
     sum_hist = pd.merge(bin_df,sum_len_df, on="BIN",how="left").fillna(0)
     return sum_hist
     
-def get_run_ids_dict(file_list):
-    run_ids_dict = {}
-    for file_name in file_list[0]:
-        file_name_token = file_name.split("/")
-        run_id, basecaller, version = file_name_token[13:16]
-        basecall_info = f"{basecaller}-{version}"
-        run_ids_dict.setdefault(run_id, [])
-        run_ids_dict[run_id].append(basecall_info)
-    return run_ids_dict
-
+    
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter) 
 
@@ -67,31 +54,22 @@ parser.add_argument('--outfile', '-o', type=str, required=False, help='Output fi
 parser.add_argument('--model', '-m', type=str, required=False, help='Basecalling model to calculate coverage for')
 parser.add_argument('--version', '-v', type=str, required=False, help='Basecaller version to calculate coverage for')
 parser.add_argument('--tab', '-t', required=False, action='store_true', help='Output information in a tab-delimited format')
-parser.add_argument('--plot', '-p', type=str, required=False, help='Plot read length histogram showing summed bases per bin.')
-parser.add_argument('--log', '-l', required=False, action='store_true', default=False, help='Plot the read length distribution on a log scale')
+parser.add_argument('--plot', '-p', type=str, required=False, help='Plot the sum of bases pairs by read length and save to the provided argument')
+parser.add_argument('--log', '-l', required=False, action='store_true', default=False, help='Plot sum of bases pairs by read length on a log scale')
 parser.add_argument('--length_limit', '-x', type=int, required=False, help='Limit of the read length to be displayed on the plot')
 parser.add_argument('--cumulative', '-u', required=False, action='store_true', default=False, help='Plot the cumulative sum of base pairs by read length')
+parser.add_argument('--count', '-n', required=False, action='store_true', default=False, help='Plot the read length distribution')
 parser.add_argument('--window', '-w', required=False, type=int, default=10000, help='Read length window size for plotting bins')
-
-
-if len(sys.argv) == 1:
-    parser.print_help(sys.stderr)
-    sys.exit(1)
 
 args = parser.parse_args()
 
-if args.sample and args.fofn==None:
-    seq_search = args.seq_type.split('|')
+if args.count and args.cumulative:
+    parser.error("--cumulative and --count cannot be used together")
 
+if args.sample and not args.fofn:
+    seq_search = args.seq_type.split('|')
     # seaches along path
-#    file_list = [ list(glob.iglob(f'/net/eichler/vol28/projects/long_read_archive/nobackups/{args.cohort}/{args.sample}/raw_data/nanopore/{search}/**/*fastq_pass.fastq.gz.fai', recursive=True)) for search in seq_search ]
-    raw_file_list = [ list(glob.iglob(f'/net/eichler/vol28/projects/long_read_archive/nobackups/{args.cohort}/{args.sample}/raw_data/nanopore/{search}/**/*fastq.gz.fai', recursive=True)) for search in seq_search ]
-    file_list = [[ file for file in raw_file_list[0] if not "fail" in file ]]
-    run_ids_dict = get_run_ids_dict(file_list)
-    for run_id in run_ids_dict:
-        if len(run_ids_dict[run_id]) > 1:
-            basecall_info = ", ".join(run_ids_dict[run_id])
-            print (f"#WARNING: Run ID {run_id} has duplicates: {basecall_info}")
+    file_list = [ list(glob.iglob(f'/net/eichler/vol28/projects/long_read_archive/nobackups/{args.cohort}/{args.sample}/raw_data/nanopore/{search}/**/*fastq_pass.fastq.gz.fai', recursive=True)) for search in seq_search ]
     # flattens list
     file_list = [ file for sublist in file_list for file in sublist ]
     if args.model:
@@ -100,27 +78,13 @@ if args.sample and args.fofn==None:
         file_list = [ file for file in file_list if args.version in file ]
     if args.runid:
         file_list = [ file for file in file_list if args.runid in file ]
-    if len(file_list) == 0:
-        sys.stderr.write(f"\n##ERROR: No FASTQ was found in {args.sample}:{args.seq_type} in {args.cohort} cohort.\n")
-        sys.exit(1)
     df = pd.concat([pd.read_csv(file, sep='\t', header=None, usecols=[0,1]) for file in file_list])
 else:
-    if not args.fofn==None:
-        if not os.path.isfile(args.fofn):
-            sys.stderr.write(f"##ERROR: File Not Found: {args.fofn}\n")
-            sys.exit(1)
-        # available for a single fastq or fai as input instead of fofn.
-        if args.fofn.endswith("fastq.gz") or args.fofn.endswith("fa.gz") or args.fofn.endswith("fasta.gz"):
-            df = pd.read_csv(args.fofn+".fai", sep='\t', header=None, usecols=[0,1])
-        elif args.fofn.endswith(".fai"):
-            df = pd.read_csv(args.fofn, sep='\t', header=None, usecols=[0,1])
-        else:
-            fofn_df = pd.read_csv(args.fofn, sep='\t', header=None, index_col=0)
-            df = pd.concat([pd.read_csv(file+'.fai', sep='\t', header=None, usecols=[0,1]) for file in fofn_df.index])
+    if args.fofn.endswith("fastq.gz"): ## availble for a single fastq file.
+        df = pd.read_csv(args.fofn+'.fai', sep='\t', header=None, usecols=[0,1])
     else:
-        fofn_file=str(args.fofn)
-        sys.stderr.write(f"##ERROR: Neither the Sample nor the FOFN has been specified.")
-        sys.exit(1)
+        fofn_df = pd.read_csv(args.fofn, sep='\t', header=None, index_col=0)
+        df = pd.concat([pd.read_csv(file+'.fai', sep='\t', header=None, usecols=[0,1]) for file in fofn_df.index])
 
 len_list = pd.Series(df[1].copy())
 
@@ -139,15 +103,15 @@ if not args.tab:
             'Coverage (X): {:,.3f}\n'
             'Coverage 100k+ (X): {:,.3f}\n'
             'Reads:     {:,d}\n'
-            'N50 (kbp):   {:,.3f}\n'.format(
+            'N50 (kbp):   {:,.2f}\n'.format(
             coverage,
             coverage_k,
             len(len_list),
-            get_n50(len_list)/1000,
+            get_n50(len_list),
         )
     )
 else:
-    out_df = pd.DataFrame.from_dict({'SAMPLE' : [args.sample], 'COVERAGE' : [round(coverage,3)], 'COVERAGE_100' : [round(coverage_k,3)], 'READS' : [len(len_list)], 'N50_K' : [get_n50(len_list)/1000]})
+    out_df = pd.DataFrame.from_dict({'SAMPLE' : [args.sample], 'COVERAGE' : [coverage], 'COVERAGE_100' : [coverage_k], 'READS' : [len(len_list)], 'N50_K' : [get_n50(len_list)]})
     out_df.to_csv(args.outfile, sep='\t', index=False)
 
 if args.plot:
@@ -164,6 +128,7 @@ if args.plot:
         ax.set_xlabel("Read Length")
 
     bins = np.arange(0, max(len_list) + BIN_SIZE, BIN_SIZE)
+    count_hist, bin_edges = np.histogram(len_list, bins = bins)
     sum_hist = load_sum_hist(len_list = len_list, bins = bins)[:-1]
 
     ax.xaxis.set_major_formatter(ticker.FuncFormatter(kb_formatter))
@@ -179,6 +144,14 @@ if args.plot:
         ax.bar(bins[:-1], cumulative_hist["SUM"], width=BIN_SIZE, align="edge" )
         ax.set_ylabel("Cumulative Sum of the Number of Bases")
         ax.yaxis.set_major_formatter(ticker.FuncFormatter(gb_formatter))
+    elif args.count:
+        if args.length_limit:
+            ax.set_xlim(0,args.length_limit)
+        
+        ax.bar(bins[:-1], count_hist, width=BIN_SIZE, align="edge" )
+        ax.set_ylabel("Read count")
+        ax.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+
     else:
         if args.length_limit:
             ax.set_xlim(0,args.length_limit)
@@ -187,6 +160,6 @@ if args.plot:
         ax.set_ylabel("Sum of the Number of Bases")
         ax.yaxis.set_major_formatter(ticker.FuncFormatter(mb_formatter))
 
-    plt.title(f"{args.sample}")    
+    plt.title(f"{args.sample}")	
     plt.savefig(args.plot, bbox_inches='tight')
 
