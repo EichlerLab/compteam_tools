@@ -51,15 +51,15 @@ parser.add_argument('--genome', '-g', type=float, required=False, help='Genome s
 parser.add_argument('--cohort', '-c', type=str, required=False, help='cohort to search along', default='pop')
 parser.add_argument('--runid', '-r', type=str, required=False, help='Individual run to select for')
 parser.add_argument('--outfile', '-o', type=str, required=False, help='Output file to write to', default='/dev/stdout')
-parser.add_argument('--model', '-m', type=str, required=False, help='Basecalling model to calculate coverage for')
+parser.add_argument('--model', '-m', type=str, metavar="BASECALL_MODEL", required=False, help='Basecalling model to calculate coverage for')
 parser.add_argument('--version', '-v', type=str, required=False, help='Basecaller version to calculate coverage for')
 parser.add_argument('--tab', '-t', required=False, action='store_true', help='Output information in a tab-delimited format')
-parser.add_argument('--plot', '-p', type=str, required=False, help='Plot the sum of bases pairs by read length and save to the provided argument')
+parser.add_argument('--plot', '-p', type=str, metavar="PNG_FILE", required=False, help='Plot the sum of bases pairs by read length and save to the provided argument')
 parser.add_argument('--log', '-l', required=False, action='store_true', default=False, help='Plot sum of bases pairs by read length on a log scale')
-parser.add_argument('--length_limit', '-x', type=int, required=False, help='Limit of the read length to be displayed on the plot')
+parser.add_argument('--length_limit', '-x', type=int, metavar="LENGTH_LIMIT_TO_SHOW", default=150000, required=False, help='Limit of the read length to be displayed on the plot')
 parser.add_argument('--cumulative', '-u', required=False, action='store_true', default=False, help='Plot the cumulative sum of base pairs by read length')
 parser.add_argument('--count', '-n', required=False, action='store_true', default=False, help='Plot the read length distribution')
-parser.add_argument('--window', '-w', required=False, type=int, default=10000, help='Read length window size for plotting bins')
+parser.add_argument('--window', '-w', required=False, type=int, metavar="WINDOW_BIN_SIZE", default=10000, help='Read length window size for plotting bins')
 
 args = parser.parse_args()
 
@@ -103,7 +103,7 @@ if not args.tab:
             'Coverage (X): {:,.3f}\n'
             'Coverage 100k+ (X): {:,.3f}\n'
             'Reads:     {:,d}\n'
-            'N50 (kbp):   {:,.2f}\n'.format(
+            'N50 (kbp):   {:,.3f}\n'.format(
             coverage,
             coverage_k,
             len(len_list),
