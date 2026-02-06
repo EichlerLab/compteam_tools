@@ -72,7 +72,7 @@ parser.add_argument('--log', '-l', required=False, action='store_true', default=
 parser.add_argument('--length_limit', '-x', type=int, required=False, help='Limit of the read length to be displayed on the plot')
 parser.add_argument('--cumulative', '-u', required=False, action='store_true', default=False, help='Plot the cumulative sum of base pairs by read length')
 parser.add_argument('--window', '-w', required=False, type=int, default=10000, help='Read length window size for plotting bins')
-
+parser.add_argument('--addcov', '-ac', required=False, action='store_true', help='Coverage at >10kb, >30kb, >50kb')
 
 if len(sys.argv) == 1:
     parser.print_help(sys.stderr)
@@ -125,26 +125,52 @@ else:
 len_list = pd.Series(df[1].copy())
 
 len_list.sort_values(ascending=False, inplace=True)
-
-
 len_list_k = pd.Series(df.loc[df[1] >= 100000][1].copy())
 
 coverage = np.sum(len_list)/(args.genome*1000000000)
 coverage_k = np.sum(len_list_k)/(args.genome*1000000000)
 
+len_list_10k = pd.Series(df.loc[df[1] >= 10000][1].copy())
+coverage_10k = np.sum(len_list_10k)/(args.genome*1000000000)
+
+len_list_30k = pd.Series(df.loc[df[1] >= 30000][1].copy())
+coverage_30k = np.sum(len_list_30k)/(args.genome*1000000000)
+
+len_list_50k = pd.Series(df.loc[df[1] >= 50000][1].copy())
+coverage_50k = np.sum(len_list_50k)/(args.genome*1000000000)
+
 
 if not args.tab:
-    with open(args.outfile, 'w') as outFile:
+    if not args.addcov:
+        with open(args.outfile, 'w') as outFile:
             outFile.write(
-            'Coverage (X): {:,.3f}\n'
-            'Coverage 100k+ (X): {:,.3f}\n'
-            'Reads:     {:,d}\n'
-            'N50 (kbp):   {:,.3f}\n'.format(
-            coverage,
-            coverage_k,
-            len(len_list),
-            get_n50(len_list)/1000,
-        )
+                'Coverage (X): {:,.3f}\n'
+                'Coverage 100k+ (X): {:,.3f}\n'
+                'Reads:     {:,d}\n'
+                'N50 (kbp):   {:,.3f}\n'.format(
+                    coverage,
+                    coverage_k,
+                    len(len_list),
+                    get_n50(len_list)/1000,
+                ))
+    elif args.addcov:
+        with open(args.outfile, 'w') as outFile:
+            outFile.write(
+                'Coverage (X): {:,.3f}\n'
+                'Coverage 100k+ (X): {:,.3f}\n'
+                'Reads:     {:,d}\n'
+                'N50 (kbp):   {:,.3f}\n'
+                'Coverage 10k+ (X): {:,.3f}\n'
+                'Coverage 30k+ (X): {:,.3f}\n'
+                'Coverage 50k+ (X): {:,.3f}\n'.format(
+                    coverage,
+                    coverage_k,
+                    len(len_list),
+                    get_n50(len_list)/1000,
+                    coverage_10k,
+                    coverage_30k,
+                    coverage_50k
+                )
     )
 else:
     out_df = pd.DataFrame.from_dict({'SAMPLE' : [args.sample], 'COVERAGE' : [round(coverage,3)], 'COVERAGE_100' : [round(coverage_k,3)], 'READS' : [len(len_list)], 'N50_K' : [get_n50(len_list)/1000]})
