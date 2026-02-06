@@ -2,6 +2,7 @@
 """
 Usage: ./get_ont_stats.py --sample CHM1 --cohort pop --prefix /path/to/LRA
 Author: Mei Wu, https://github.com/projectoriented
+Modified: Youngjun Kwon
 """
 
 import os
@@ -9,6 +10,7 @@ import glob
 import sys
 import logging
 import argparse
+from collections import defaultdict
 
 import pandas as pd
 import numpy as np
@@ -115,15 +117,36 @@ class CalculateStats:
 
 
 class FindONT:
-    regex = r'(?P<common_dir>.*nanopore)/(?P<library>[A-Z]{2,5})/fastq/(?P<run_id>.+)/(?P<basecaller>.+)/(?P<version>\d+.\d+.\d+)/(?P<model>.+)/(?P<filename>.*_pass.fastq.gz)'
+    regex = r'(?P<common_dir>.*nanopore)/(?P<library>[A-Z]{2,5})/fastq/(?P<run_id>.+)/(?P<basecaller>.+)/(?P<version>\d+.\d+.\d+)/(?P<model>.+)/(?P<filename>.*_pass.*fastq.gz)'
 
     def __init__(self, prefix, sample, cohort):
         self.prefix = prefix
         self.sample = sample
         self.cohort = cohort
+        # added a condition that fastq have filtered and has .filt. in the name.
         glob_list_tmp = glob.glob(
-            f"{os.path.join(prefix, cohort, sample)}/raw_data/nanopore/*/fastq/*/*/*/*/*_pass.fastq.gz")
-        self.glob_list = [ fastq for fastq in glob_list_tmp if not "HERRO" in fastq ]
+            f"{os.path.join(prefix, cohort, sample)}/raw_data/nanopore/*/fastq/*/*/*/*/*_pass*fastq.gz")
+
+        groups = defaultdict(list)
+
+        for f in glob_list_tmp:
+            if f.endswith("pass.filt.fastq.gz"):
+                key = f.replace("pass.filt.fastq.gz", "")
+            elif f.endswith("pass.fastq.gz"):
+                key = f.replace("pass.fastq.gz", "")
+            else:
+                continue
+            groups[key].append(f)
+
+        glob_list = []
+        for files in groups.values():
+            filt = [file for file in files if file.endswith("pass.filt.fastq.gz")]
+            if filt:
+                glob_list.extend(filt)
+            else:
+                glob_list.extend(files)
+
+        self.glob_list = [ fastq for fastq in glob_list if not "HERRO" in fastq ]
         self.df = pd.DataFrame(data=self.glob_list, columns=["filepath"])
 
     @property
