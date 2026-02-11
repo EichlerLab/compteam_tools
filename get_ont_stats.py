@@ -127,27 +127,28 @@ class FindONT:
         glob_list_tmp = glob.glob(
             f"{os.path.join(prefix, cohort, sample)}/raw_data/nanopore/*/fastq/*/*/*/*/*_pass*fastq.gz")
 
-        groups = defaultdict(list)
+        groups = {}
 
-        for f in glob_list_tmp:
-            if f.endswith("pass.filt.fastq.gz"):
-                key = f.replace("pass.filt.fastq.gz", "")
-            elif f.endswith("pass.fastq.gz"):
-                key = f.replace("pass.fastq.gz", "")
-            else:
+        for file in glob_list_tmp:
+            if "HERRO" in file:
                 continue
-            groups[key].append(f)
+            run_id = file.split("raw_data/nanopore")[1].split("/")[3]
+            groups.setdefault(run_id, {})
+            if file.endswith("pass.filt.fastq.gz"):
+                print ("filt",file)
+                groups[run_id]["filt"] = file
+            else:
+                print ("raw",file)
+                groups[run_id]["raw"] = file
 
         glob_list = []
-        for files in groups.values():
-            filt = [file for file in files if file.endswith("pass.filt.fastq.gz")]
-            if filt:
-                glob_list.extend(filt)
-            else:
-                glob_list.extend(files)
+        for run_id in groups.keys():
+            try:
+                glob_list.append(groups[run_id]["filt"])
+            except KeyError:
+                glob_list.append(groups[run_id]["raw"])
 
-        self.glob_list = [ fastq for fastq in glob_list if not "HERRO" in fastq ]
-        self.df = pd.DataFrame(data=self.glob_list, columns=["filepath"])
+        self.df = pd.DataFrame(data=glob_list, columns=["filepath"])
 
     @property
     def unique_indicies(self):
