@@ -135,10 +135,8 @@ class FindONT:
             run_id = file.split("raw_data/nanopore")[1].split("/")[3]
             groups.setdefault(run_id, {})
             if file.endswith("pass.filt.fastq.gz"):
-                print ("filt",file)
                 groups[run_id]["filt"] = file
             else:
-                print ("raw",file)
                 groups[run_id]["raw"] = file
 
         glob_list = []

@@ -2,8 +2,9 @@
 """
 Usage: ./get_pb_stats.py --sample CHM1 --cohort pop --prefix /path/to/LRA
 Author: Mei Wu, https://github.com/projectoriented
-
 This is a script tuned for CCS/HiFi or Revio generated .fastq.gz files.
+
+Edited: Youngjun Kwon (tuned for also FiberSeq / Kinnex)
 """
 
 import os
@@ -47,27 +48,33 @@ def main():
     pb_obj.apply_regex()
     pb_obj.make_directory()
 
-    outpath = pb_obj.outpath
+    # outpath = pb_obj.outpath
 
-    final_df = pd.DataFrame()
+    for seqtype, sub_df in pb_obj.df.groupby("seqtype"):
+        final_df = pd.DataFrame()
 
-    for idx, row in pb_obj.df.iterrows():
-        final_df = pd.concat(
-            [
-                final_df,
-                CalculateStats(filepath=[row.filepath], cell_name=row.filename).stats
-            ]
+        for idx, row in sub_df.iterrows():
+            final_df = pd.concat(
+                [
+                    final_df,
+                    CalculateStats(filepath=[row.filepath], cell_name=row.filename).stats
+                ]
+            )
+
+        # Add a total row
+
+        fastqs = sub_df.filepath.tolist()
+        total_df = CalculateStats(filepath=fastqs, cell_name="total").stats
+        final_df = pd.concat([final_df, total_df])
+
+        outpath = os.path.join(
+            sub_df["directory_make"].iloc[0],
+            sub_df["n50_filename"].iloc[0]
         )
-
-    # Add a total row
-    fastqs = pb_obj.df.filepath.tolist()
-    total_df = CalculateStats(filepath=fastqs, cell_name="total").stats
-    final_df = pd.concat([final_df, total_df])
+        final_df.to_csv(outpath, sep='\t', index=False, header=True)
+        LOG.info(f"{seqtype.upper()} Wrote: {outpath}")
 
     del pb_obj
-    final_df.to_csv(outpath, sep='\t', index=False, header=True)
-    LOG.info(f"Wrote: {outpath}")
-
 
 class CalculateStats:
     def __init__(self, filepath: list, cell_name: str):
@@ -121,14 +128,19 @@ class CalculateStats:
 
 
 class FindPB:
-    regex = r'(?P<common_dir>.*PacBio_HiFi)/(?P<filename>.*fastq.gz)'
+    # regex = r'(?P<common_dir>.*PacBio_HiFi)/(?P<filename>.*fastq.gz)'
+    regex = r'(?P<common_dir>.*PacBio_HiFi)(?:/(?P<seqtype>[^/]+))?/(?P<filename>.*fastq.gz)'
 
     def __init__(self, prefix, sample, cohort):
         self.prefix = prefix
         self.sample = sample
         self.cohort = cohort
-        self.glob_list = glob.glob(
-            f"{os.path.join(prefix, cohort, sample)}/raw_data/PacBio_HiFi/*.fastq.gz")
+        base = os.path.join(prefix, cohort, sample, "raw_data", "PacBio_HiFi")
+        self.glob_list = (
+            glob.glob(os.path.join(base, "*.fastq.gz")) +
+            glob.glob(os.path.join(base, "Kinnex", "*.fastq.gz")) +
+            glob.glob(os.path.join(base, "FiberSeq", "*.fastq.gz"))
+        )
         self.df = pd.DataFrame(data=self.glob_list, columns=["filepath"])
 
     @property
@@ -142,14 +154,24 @@ class FindPB:
 
         regex_df = self.df.filepath.str.extract(self.__class__.regex, expand=True)
         self.df = pd.concat([self.df, regex_df], axis=1)
+        self.df["seqtype"] = self.df["seqtype"].fillna("hifi")
+        self.df["seqtype"] = self.df["seqtype"].str.lower()
 
-        self.df["directory_make"] = self.df.apply(lambda row: os.path.join(row.common_dir, "quick_stats"), axis=1)
-        self.df["n50_filename"] = self.df.apply(lambda row: f"n50_{self.sample}.tsv", axis=1)
+        # self.df["directory_make"] = self.df.apply(lambda row: os.path.join(row.common_dir, "quick_stats"), axis=1)
+        self.df["directory_make"] = self.df.apply(
+            lambda row: os.path.join(row.common_dir, "quick_stats"),
+            axis=1
+        )
+        # self.df["n50_filename"] = self.df.apply(lambda row: f"read_n50_{self.sample}.txt", axis=1)
+        self.df["n50_filename"] = self.df.apply(
+            lambda row: f"n50_{row.seqtype}.txt",
+            axis=1
+        )
 
         # re-do the filename
         self.df["filename"] = self.df["filename"].apply(lambda x: x.split(".")[0])
 
-        self.df.set_index("n50_filename", inplace=True)
+        # self.df.set_index("n50_filename", inplace=True)
 
         return self.df
 
@@ -169,14 +191,14 @@ class FindPB:
             else:
                 LOG.info(f"{v} exists, skipping.")
 
-    @property
-    def outpath(self):
-        if len(self.unique_indicies) > 1:
-            raise OSError(f"There are multiple output names: {self.unique_indicies}")
+    # @property
+    # def outpath(self):
+    #     if len(self.unique_indicies) > 1:
+    #         raise OSError(f"There are multiple output names: {self.unique_indicies}")
 
-        n50_filename = self.unique_indicies.pop()
-        n50_abs_path = os.path.join(self.df.directory_make[0], n50_filename)
-        return n50_abs_path
+    #     n50_filename = self.unique_indicies.pop()
+    #     n50_abs_path = os.path.join(self.df.directory_make[0], n50_filename)
+    #     return n50_abs_path
 
 
 if __name__ == "__main__":
