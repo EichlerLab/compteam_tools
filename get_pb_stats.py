@@ -122,7 +122,7 @@ class CalculateStats:
             'COVERAGE_X_15_Kbp': ["{:.2f}".format(coverage_k["15k"])],
             'COVERAGE_X_18_Kbp': ["{:.2f}".format(coverage_k["18k"])],
             'READS': [len(len_list)],
-            'N50_Kbp': ["{:.2f}".format(self.get_n50(len_list))],
+            'N50_Kbp': ["{:.3f}".format(self.get_n50(len_list))],
             'FILES': ','.join(self.filepath)
         })
 

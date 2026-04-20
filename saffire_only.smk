@@ -167,7 +167,7 @@ rule split_paf:
 
         with open(output.temp_paf, "w") as outfile:
             for item in out_list:
-                outfile.write("\t".join(item))
+                outfile.write("\t".join(item)+"\n")
 
         df = pd.read_csv(output.temp_paf, sep="\t", low_memory=False, header=None)
         col_out = df.columns.values

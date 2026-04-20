@@ -117,7 +117,7 @@ class CalculateStats:
 
 
 class FindONT:
-    regex = r'(?P<common_dir>.*nanopore)/(?P<library>[A-Z]{2,5})/fastq/(?P<run_id>.+)/(?P<basecaller>.+)/(?P<version>\d+.\d+.\d+)/(?P<model>.+)/(?P<filename>.*_pass.*fastq.gz)'
+    regex = r'(?P<common_dir>.*nanopore)/(?P<library>[A-Za-z]+)/fastq/(?P<run_id>.+)/(?P<basecaller>.+)/(?P<version>\d+.\d+.\d+)/(?P<model>.+)/(?P<filename>.*_pass.*fastq.gz)'
 
     def __init__(self, prefix, sample, cohort):
         self.prefix = prefix
