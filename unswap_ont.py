@@ -6,7 +6,7 @@ import logging
 import os
 from datetime import datetime
 from pathlib import Path
-
+import sys
 import pandas as pd
 
 
@@ -22,7 +22,8 @@ def get_checksum(file_name):
 
 
 def die(message):
-    raise RuntimeError(message)
+    print(f"\n## ERROR ==================================================\n {message}\n===========================================================", file=sys.stderr)
+    sys.exit(1)
 
 
 def get_old_sample_from_input(input_path, archive_base, cohort):
@@ -49,7 +50,6 @@ def get_old_sample_from_input(input_path, archive_base, cohort):
 
     return rel.parts[0]
 
-
 def make_relative_under_old_sample(dest_path, old_base):
     """
     Convert absolute DEST_PATH to path relative to old sample directory.
@@ -65,7 +65,14 @@ def make_relative_under_old_sample(dest_path, old_base):
         die(
             f"DEST_PATH is not under old sample base:\n"
             f"  DEST_PATH: {dest_path}\n"
-            f"  old_base:  {old_base}"
+            f"  old_base:  {old_base}\n\n"
+            f"Please run this script from the cohort directory containing "
+            f"the copy record, for example:\n"
+            f"  cd {old_base.parent}\n\n"
+            f"Then rerun the command using the copy record path from within "
+            f"that cohort directory.\n"
+            f"This prevents accidentally creating nested paths such as:\n"
+            f"  {old_base.name}/net/eichler/vol28/..."
         )
 
 
@@ -442,7 +449,26 @@ def main():
         with open(output_file, "w") as outfile:
             outfile.write("\n".join(migrated_files) + "\n")
 
-    logging.info(f"Output written to {output_file}")
+    remove_list_path = Path(output_file).resolve()
+
+    if args.dry_run:
+        logging.info(
+            "\n"
+            "Dry-run completed. No files were created or modified.\n"
+            f"Remove-list file would be written to:\n"
+            f"  {remove_list_path}\n\n"
+            "After running without --dry-run, review this file and remove the "
+            "files listed in it if the migration looks correct."
+        )
+    else:
+        logging.info(
+            "\n"
+            "Migration completed.\n"
+            f"Remove-list file written to:\n"
+            f"  {remove_list_path}\n\n"
+            "Please review this remove-list file, then delete the files listed "
+            "in it after confirming the new hardlinks/copy record are correct."
+        )
 
 
 if __name__ == "__main__":
