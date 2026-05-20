@@ -3,6 +3,7 @@
 import argparse
 import re
 import textwrap
+import os
 
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap, Normalize
@@ -148,8 +149,8 @@ def build_colormap(data_max):
 
 
 def clean_label(label):
-    label = str(label)
-    label = label.replace(".count", "")
+    label = os.path.basename(str(label))
+    label = label.removesuffix(".count")
     label = re.sub(r"\s+", " ", label)
     return label
 
