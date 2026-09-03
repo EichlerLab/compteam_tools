@@ -81,10 +81,10 @@ def print_sample_status(sample, cromwell_dirs, qstat_jobs):
         for final_output_file in list(Path('.').rglob(
             f'*FlaggerEndToEnd*/{cromwell_dir}/**/output/*final.bed'
         )) + list(Path('.').rglob(
-            f'*FlaggerEndToEnd*/{cromwell_dir}/**/output/*flagger.no_Hap.bed'
+            f'*FlaggerEndToEnd*/{cromwell_dir}/**/output/*flagger*.no_Hap*.bed'
         )):
             final_output_files.append(str(final_output_file))
-        print(final_output_files)
+        #print(final_output_files)
         subjobs += [
             z for z in qstat_jobs if (
                 (cromwell_dir in z['stdout_path_list']) or 
@@ -143,4 +143,6 @@ def parse_qstat_str(qstat_str):
 
 if __name__ == '__main__':
     main()
+
+
 
