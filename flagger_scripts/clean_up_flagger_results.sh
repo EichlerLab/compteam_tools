@@ -9,11 +9,11 @@ mkdir -p final_outputs
 found_any_outfile=false
 for j in $(ls cromwell-executions/*FlaggerEndToEnd*); do
     found_outfile=false
-    # nohap outpath has the correct sample name in it, but prediction bed is desired output with all blocks including Hap- use this and rename
-    nohap_outpath=$(find cromwell-executions/*FlaggerEndToEnd*/"$j" -path '*/output/*flagger.no_Hap.bed' 2>/dev/null)
-    sample=$(basename "$nohap_outpath" | sed 's/\.hmm_flagger\.no_Hap\.bed//')
-    full_outpath=$(find cromwell-executions/*FlaggerEndToEnd*/"$j" -path '*/output/*prediction.bed' 2>/dev/null)
-    if [ -f "$nohap_outpath" ] && [ -f "$full_outpath" ]; then
+    # other files have the correct sample name, but prediction bed is desired output with all blocks including Hap- use this and rename
+    sample_outpath=$(find cromwell-executions/*FlaggerEndToEnd*/"$j" -path '*.dip.asm.canonical_only.bed' 2>/dev/null | head -n 1)
+    sample=$(basename "$sample_outpath" | sed 's/\.dip\.asm\.canonical_only\.bed//')
+    full_outpath=$(find cromwell-executions/*FlaggerEndToEnd*/"$j" -name 'final_flagger_prediction.bed' 2>/dev/null)
+    if [ -f "$sample_outpath" ] && [ -f "$full_outpath" ]; then
         echo Sample "$sample":
         echo Copying final bed to final_outputs/"$sample"_$(basename "$full_outpath")
         cp "$full_outpath" final_outputs/"$sample"_$(basename "$full_outpath")
@@ -47,7 +47,8 @@ for j in $(ls cromwell-executions/*FlaggerEndToEnd*); do
 done
 
 if $found_any_outfile; then
-    echo "Wrote final beds/ summary files to final_outputs directory"
+    echo "Moved final beds/ summary files to final_outputs directory"
 else
     echo "No output files found"
 fi
+
